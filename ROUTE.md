@@ -54,21 +54,43 @@
 |---|---|---|---|
 | `软件/编码` | 写 / 改**任何**代码（含脚本）；全仓过度工程审计 / 只查复杂度的评审 | `ponytail` · `ponytail-audit` · `ponytail-review` | skill 正文 |
 | `软件/构建` | 嵌入式工程构建（CMake 系） | `stm32-hal-cli-flow` · `build-cmake` | skill 正文 |
+| `软件/烧录` | flash、下载固件、RTT 日志（J-Link） | `flash-jlink` | skill 正文 |
+| `软件/静态分析` | cppcheck、clang-tidy、MISRA 筛选、交付前代码质量扫描 | `static-analysis` | skill 正文 |
+| `软件/体积` | `.map`、固件大小、内存占用、版本体积对比 | `stm32-hal-cli-flow` | skill 正文 |
+| `软件/RTOS` | 任务栈水位、死锁检测、调度异常、中断不响应 | `stm32-hang-triage` | skill 正文 |
 | `软件/调试` | 崩溃、卡死、HardFault、静默死锁、跑飞（STM32 + J-Link） | `stm32-hang-triage` · `debug-jlink` | skill 正文 |
+| `规划/工程` | 从模板派生新工程、换芯片 | `stm32-hal-cli-flow` | skill 正文 |
 
 > **`ponytail` 是强制的**——写 / 改**任何**代码（含脚本）都必须装载它，无例外。
 > 它的 2 个子命令 `ponytail-audit`（全仓审计）· `ponytail-review`（只查 diff）**按用户点名触发**，
 > 不单独占任务类型，但仍登记在本行的 skill 格里（否则审计会判它们"发布出去也路由不到"）。
 
-### 2.3 环境类
+### 2.3 工具与环境类
 
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
+| `工具/串口` | 抓串口日志、等启动字符串、交互 shell、发命令看响应 | `serial-monitor` · `serial-shell` | skill 正文 |
 | `环境/接线` | 新装 AI 客户端、某客户端读不到 skill 或规则 | `agent-skill-wiring` | skill 正文 |
 | `环境/装技能` | 从 GitHub 安装 skill（含安全审计） | `install-github-skill` | skill 正文 |
 | `环境/改技能` | **加 / 改 / 修 / 退本库 skill**——把工作流程沉淀成新 skill、修正文里说错的话、装完补挂各端。**装新 skill 时 [MUST] 先定它的任务类型**：自己判断 → 判不准就问用户，**不许留空**；**从 GitHub 来源装新 skill 时另加 `install-github-skill`** | 无 | skill 正文 |
+| `环境/流水线` | 把多步串成一条链：**编译 + 烧录 + 监控** / 编译 + 烧录 + 调试 | 无 | 各步对应 skill 正文 |
 
-### 2.4 通用类（语言 / 平台无关的工程方法）
+### 2.4 文档与知识类（无必载 skill）
+
+| 类型 | 触发特征 | 必载 skill | 必读 |
+|---|---|---|---|
+| `硬件/bringup` | 板子到手：焊接核对、限流上电、首次点亮 | 无 | `WORKFLOW.md` §2.1 ⑤ 的 checklist |
+| `文档/报告` | 架构文档、测试报告、竞赛报告、编写说明 | 无 | `WORKFLOW.md` §2.1 ⑪ |
+| `知识/沉淀` | 踩坑、决策、选型、复盘 | 无 | 你自己的知识库约定 |
+| `管理/工作台` | 改本套文档、加 / 退 skill、加客户端 | 无 | 本仓 `README.md` 维护节 + §2.6 |
+
+### 2.5 汇报材料类
+
+| 类型 | 触发特征 | 必载 skill | 必读 |
+|---|---|---|---|
+| `文档/汇报PPT` | 做 / 改 PPT、幻灯片、答辩与汇报材料、课件 | `ppt-master` | skill 正文（**可选增强**，见 §2.7） |
+
+### 2.6 通用类（语言 / 平台无关的工程方法）
 
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
@@ -84,19 +106,25 @@
 > `grill-with-docs`（差异化能力随 `domain-modeling` 退库已死）与 `grill-me`（7 行，只是
 > `grilling` 的别名）。**方案拷问统一走 `grilling`**，不必保留别名目录。
 
-### 2.5 本地扩展（可选）
+### 2.7 可选增强与降级路径（**装没装都能开工**）
 
-本库之外的**本地层** skill（不进本仓）由本地维护的增量表补充登记，规则同 §2：
-命中"触发特征"就必须装载。例：汇报 PPT 链推荐直接安装上游 `hugohe3/ppt-master`，
-然后在本地增量表里给 `文档/汇报PPT` 类型挂上它。
-
-另一类例（**平行工具链**）：[easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)
-是 EDA 侧的另一条独立链路（自带 CLI/daemon/连接器/skill）。
-**2026-09-30 起本机已采用它**：装的是**本地层**（`.gitignore` 的第三方大件，不进本仓），
-skill 目录 `~/.ai-skills/easyeda-agent/`（由 `skillman` 统一挂 10 端，**不是**它的 installer 管的
-——装 CLI 时用 `EASYEDA_INSTALL_SKILLS=none` 避免双头管理）。
-本机适配与机器事实写在**宿主工作台**的机器事实单一源文档 §3.1（不在本仓），**不改上游文件**
-（它自带 `easyeda update`，本地改动会被覆盖）。
+- **本地层第三方大件**（不随本仓发布；`doctor` 对它们缺失**只警告**，不算错误）：
+  - `easyeda-agent`（落图 / 布局 / 布线加强；[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)，MIT）：
+    `硬件/落图` 的加强项。**没装也能落图**——走 `easyeda-api` 自带的官方规程与 `references/`。
+    装它时**必带 `EASYEDA_INSTALL_SKILLS=none`**（否则它与本库的挂载机制双头打架），
+    再把它的 skill 目录放进本库、由 `skillman` 统一挂到各端。
+  - `ppt-master`（汇报 PPT；[hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)）：
+    `文档/汇报PPT` 的推荐项。没装时按工程自己的文档规范手工产出，不影响其余流程。
+  - 逐项装法：`PREREQUISITES.md` §3。
+- **工具链降级**：串口 skill 需 `pyserial`（缺 → 脚本明确报 `environment-missing` 并给 PuTTY / screen 替代）；
+  `easyeda-*` 需 Node（缺 → 用 EDA 客户端自带导出）；J-Link 两件套需 SEGGER 工具包
+  （缺 → 报 `environment-missing`，**脚本不猜安装路径**）。
+- **本地扩展层（可选）**：只适合本机的 skill / 私有台账，放进本库后加进 `.gitignore` 的本地层名单，
+  并把它的任务类型登记进 §2 对应行（`tools/skillman.py doctor` 会校验无死链）。
+- **本协议不依赖任何"宿主工作台"**：凡需要本机具体数值的地方（路径 / 端口 / 版本），
+  以你机器上的实际文件为准；本仓只承诺通用能力，不承诺"某台机器怎么干活"。
+- **AI 边界（任何客户端都适用）**：**不擅自烧录**（先与人确认）· 不下单 · 不擦片 ·
+  不改芯片配置的引脚 / 时钟前先问人。
 
 ## 3. 路由声明（固定格式，贴在回复开头）
 

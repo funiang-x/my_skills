@@ -1,7 +1,10 @@
 # PREREQUISITES — 拿到本仓到能开干，中间还差什么
 
-> **本仓是「骨架」，不是「全套」。** clone 下来只是拿到说明书 —— 下面三层缺任何一层，
-> 都会在某个环节断掉。**先读完这份，再跑 `install`。**
+> **公开层 23 个 skill，clone + 安装即可全流程开工。**
+> （2026-09-30 起：原先 6 个"平台自带、非 Trae 用户拿不到"的 skill 已由**自研替代版进仓**，
+> 本仓对 STM32 + J-Link + 嘉立创 EDA 主链**自洽**。）
+> 剩下要自备的只有两类**可选件**：真工具链（缺了各有降级路径）与两个第三方大件 skill。
+> **先读完这份，再跑 `install`。**
 
 ## 快速自检
 
@@ -13,16 +16,16 @@ python tools/skillman.py doctor
 
 它会告诉你接线通不通、skill 可调用、路由一致。
 
-**新机 clone 后第一次跑，「路由一致性」会报本地层 skill 未装**——实测就是这 3 个：
+**新机 clone 后第一次跑**，唯一可能出现的警告是本地层第三方大件未装：
 
 ```
-⚠ 本地层 skill 未装（不随本仓发布，属已知状态）：build-cmake,debug-jlink,easyeda-agent
+⚠ 本地层 skill 未装（不随本仓发布，属已知状态）：easyeda-agent,ppt-master
 ```
 
-| 缺的 | 去哪补 |
-|---|---|
-| `build-cmake` · `debug-jlink` | §3.1（Trae CN 自带，**非 Trae 用户拿不到**） |
-| `easyeda-agent` | §3.2（**需另装**） |
+| 缺的 | 影响 | 去哪补 |
+|---|---|---|
+| `easyeda-agent` | 落图 / 布局 / 布线的**加强项**——没它也能落图 | §3.2（可选） |
+| `ppt-master` | 汇报 PPT 链——没它也能写文档 | §3.1（可选） |
 
 **这不是缺陷，是分层**——所以 `doctor` 把它算**警告**不算错误。真正会算**错误**的是
 「**公开层** skill 被引用却不在」，那说明表写错了或仓不完整。
@@ -51,48 +54,53 @@ python tools/skillman.py install --apply    # 落地
 
 > ⚠️ 全局门里写的是 `~/.ai-skills/ROUTE.md`。**clone 到别的位置**要改这段指针
 > （`install` 会按实际路径写，但**换位置后要重跑一次**）。
-> ⚠️ `install` 只处理它**探测到**的客户端。Qoder 没有 skills 目录约定，只走规则门。
+> ⚠️ `install` 只处理它**探测到**的客户端；**Qoder** 没有 skills 目录约定，只走规则门。
+> ⚠️ 不在探测清单里的客户端（Cursor / Windsurf 等）：按 `agent-skill-wiring` skill 的
+> 「手工接线」节处理——**没有 skills 机制的 agent 也能用**：让它读 `ROUTE.md`，按表直接读
+> `<库>/<skill>/SKILL.md` 正文干活即可（协议本身不依赖任何平台特性）。
 
-## 2. 第 1 层 · 工具链
+## 2. 第 1 层 · 工具链（用到哪个装哪个；缺了各有降级路径）
 
 **仓库脚本本身零依赖**：`preflight.py` / `skillman.py` / `skill_audit.py` / `gate.py` /
-`_gatecore.py` **只用标准库**，要 **Python 3 + git**（`_check_public.py` 要 `git ls-files`）。
+`_gatecore.py` **只用标准库**，只要 **Python 3 + git**（`_check_public.py` 要 `git ls-files`）。
 
-但 **skill 正文要的是真工具**——用到哪个装哪个：
+skill 正文要的是真工具——**缺了不等于不能开工**：
 
-| skill | 外部依赖 |
-|---|---|
-| `stm32-hal-cli-flow` | `arm-none-eabi-gcc` · `cmake` · `ninja` · `python3` |
-| `stm32-hang-triage` | 同上 ＋ J-Link 工具链 |
-| `easyeda-api` | Node + 在本 skill 目录里跑一次 `npm install` |
-| `easyeda-viewer` | Node（≥18） |
-| `install-github-skill` | `git` · `tar` |
-
-## 3. 第 2 层 · **不在本仓里的东西**（最大的坑）
-
-### 3.1 本地层 skill（8 个，由 `.gitignore` 划定，不随本仓发布）
-
-它们与公开层**一视同仁**地挂到各客户端，只是不进仓：
-
-| 类别 | 名字 | 怎么来 |
+| skill | 外部依赖 | 缺了怎么办（降级路径） |
 |---|---|---|
-| 平台自带 6 | `build-cmake` · `debug-jlink` · `flash-jlink` · `serial-monitor` · `serial-shell` · `static-analysis` | 随 **Trae CN** 自带；**非 Trae 用户拿不到**——需要时自己写一份等价的 |
-| 第三方 2 | `ppt-master` | 装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master) |
-| | `easyeda-agent` | 见 §3.2 |
+| `stm32-hal-cli-flow` | `arm-none-eabi-gcc` · `cmake` · `ninja` · `python3` | 装工具链；或改走工程自带入口 |
+| `stm32-hang-triage` | 同上 + J-Link 工具链 | 先装 J-Link（`--detect` 会报缺） |
+| `build-cmake` | `cmake`（+ Ninja/Make 生成器） | `--detect` 报 `environment-missing`，**不要硬拼命令** |
+| `flash-jlink` | SEGGER J-Link 工具包（JLink.exe / JLinkExe / JLinkRTTLogger） | `--detect` 报缺；可用环境变量 `JLINK_DIR` 指向安装目录 |
+| `debug-jlink` | J-Link 工具包 + `arm-none-eabi-gdb` | `--gdb` 可显式指定 gdb 路径 |
+| `serial-monitor` / `serial-shell` | `pyserial`（`pip install pyserial`） | 脚本报 `environment-missing` 并给替代：PuTTY / `screen` |
+| `static-analysis` | `cppcheck` / `clang-tidy` | 报缺并给安装指引；或优先用工程自带 lint |
+| `easyeda-api` | Node + 在本 skill 目录跑一次 `npm install` | 改用 EDA 客户端自带导出 / 操作 |
+| `easyeda-viewer` | Node（≥18） | 不装则跳过离线看图 |
+| `install-github-skill` | `git` · `tar` | — |
 
-**缺了会怎样**：`硬件/落图` 的必载 skill 装不到 → **硬件主链断在第 ③ 步**；
-烧录 / 串口 / 静态分析 / 汇报 PPT 这些任务类型**无 skill 可用**。
+## 3. 第 2 层 · **不在本仓里的东西**（都可选）
 
-### 3.2 `easyeda-agent`（硬件落图链的关键，**需另装**）
+### 3.1 本地层第三方大件（2 个，由 `.gitignore` 划定，不随本仓发布）
 
-它**不在本仓**（第三方大件，2.7 MB / 201 文件，MIT，自带 `easyeda update` 自更新）。
-但 `ROUTE.md` §2 的 `硬件/落图` 行**点名了它**——所以**不装它，`doctor` 会报
-`路由引用了不存在的 skill：easyeda-agent`**。
+| 名字 | 是什么 | 怎么来 |
+|---|---|---|
+| `ppt-master` | 汇报 PPT 链（84 MB / 13,000 文件） | 装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master) |
+| `easyeda-agent` | 落图 / 布局 / 布线的 CLI 化规程（2.7 MB） | 见 §3.2 |
 
-装法见上游 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)。
-⚠️ **必带 `EASYEDA_INSTALL_SKILLS=none`**：否则它会把 skill 写进客户端的 skills 目录，
-与 `skillman` 的管理机制**打架**（双头管理）。skill 单独放进 `~/.ai-skills/easyeda-agent/`，
-再用 `skillman install --apply` 挂到各端。
+**缺了会怎样**：`硬件/落图` 少一个加强件（依旧可走 `easyeda-api` 自带规程）；
+`文档/汇报PPT` 无 skill 可用（按工程自己的文档规范手工产出）。其余流程不受影响。
+
+> **平台机制目录 `shared/`**：Trae CN 平台自带 skill 的公共依赖，本库自研版**不再引用**；
+> 留在 `.gitignore` 名单里只是防误入仓。
+
+### 3.2 `easyeda-agent`（**可选增强**，需另装）
+
+EDA 生态的 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT，自带 CLI/daemon/连接器）。
+`ROUTE.md` §2 的 `硬件/落图` 行把它列为加强项；**不装也不会让 `doctor` 报错**（本地层缺失=警告）。
+
+⚠️ **装它时必带 `EASYEDA_INSTALL_SKILLS=none`**：否则它会把 skill 写进客户端的 skills 目录，
+与 `skillman` 的管理机制**打架**（双头管理）。skill 单独放进本库目录，再用 `skillman install --apply` 挂到各端。
 
 ### 3.3 EDA 侧 GUI 前置（**不做就完全无法落图**）
 
@@ -105,12 +113,11 @@ python tools/skillman.py install --apply    # 落地
 链路：**AI → `easyeda-api` skill → Bridge Server(49620-49629) → Run API Gateway 扩展 → 嘉立创 EDA 专业版**
 ⚠️ 扩展**不会自动重连**：EDA 先于桥打开、或桥中途重启时，要在 EDA 里重载一次扩展。
 
-### 3.4 宿主工作台（本机专属，**不在本仓**）
+### 3.4 本地扩展层（可选，**不属于本仓**）
 
-`ROUTE.md` §2.5 与 `WORKFLOW.md` §6 都指向「宿主工作台」——那是**每台机器自己的**东西：
-机器事实（路径 / 端口 / 版本）· 各阶段的本机实现细节 · 任务类型的本机扩展。
-
-**本仓只承诺"通用能力"，不承诺"某台机器怎么干活"。** 你要自己维护那份工作台。
+**本仓不依赖任何"宿主工作台"**。机器事实（路径 / 端口 / 版本）与只适合本机的 skill / 私有台账，
+按 `ROUTE.md` §2.7 自建**本地扩展层**：放进本库目录 → 加进 `.gitignore` 本地层名单 →
+把任务类型登记进 `ROUTE.md` §2 对应行（`tools/skillman.py doctor` 校验无死链）。
 
 ---
 
@@ -118,8 +125,5 @@ python tools/skillman.py install --apply    # 落地
 
 | 谁 | 能不能开箱即用 |
 |---|---|
-| **本仓作者那台机器** | ✅ 能 —— 本地层 8 个 + 宿主工作台都在 |
-| **任意 AI / 另一台机器** | ❌ **不能** —— 要 clone + `install` + 补本地层 skill + 自备工作台，才到约 80% |
-
-**这不是缺陷，是分层**：`README.md` 讲的是"这个仓里有什么"，
-本文讲的是"要跑起来还差什么"。**两份都要读。**
+| **任意 AI / 任意机器** | ✅ 公开层 23 个 skill clone + `install` 即得；缺的只是真工具链与 2 个可选大件（**都有降级路径**） |
+| **要落图加强 / 汇报 PPT** | 按 §3 单独安装两个可选件——不装也各有替代 |
