@@ -35,6 +35,38 @@
 两者**互为复述**（同一批 skill，两种排法），所以有机器检查防漂：`skillman.py doctor`
 会校验 `WORKFLOW.md` 里的 skill 名 ⊆（`ROUTE.md` §2 ∪ `.gitignore` 本地层名单）。
 
+## 按你要做的事，找该装哪个 skill
+
+> 下面「按链路分组」是**按类别**排的；这一节是**按你要做的事**索引——
+> **不知道 skill 叫什么名字时，从这里查。**
+> 带 ⚠️ 的是**本地层**（不随本仓发布，需自备；见 [`PREREQUISITES.md`](PREREQUISITES.md) §3）。
+
+| 你要做的事 | 装哪个 skill |
+|---|---|
+| 选 MCU / 选器件 / 比方案 | `hardware-solution` |
+| 画 / 改原理图、改网表、跑 DRC | `easyeda-agent` ⚠️ + `easyeda-api` |
+| 离线看图纸、落图后视觉复核 | `easyeda-viewer` |
+| 写 / 改**任何**代码（含脚本） | `ponytail`（**强制，无例外**） |
+| 审查整个仓的过度工程 | `ponytail-audit`（**点名触发**） |
+| 只审查这次改了什么 | `ponytail-review`（**点名触发**） |
+| 构建固件 / 看体积 / 跑单测 | `stm32-hal-cli-flow` |
+| 通用 CMake 工程构建 | `build-cmake` ⚠️ |
+| 烧录、看 RTT 日志 | `flash-jlink` ⚠️ |
+| 板子崩了 / 卡死 / HardFault | `stm32-hang-triage` |
+| GDB 取证 | `debug-jlink` ⚠️ |
+| 通用 bug 定位（复现 → 收紧 → 定位） | `diagnosing-bugs` |
+| 想先写测试再写实现 | `tdd` |
+| 设计模块接口、嫌接口太碎 | `codebase-design` |
+| 需求没想清楚，想被拷问一轮 | `grilling` |
+| 把当前会话交给另一个 agent | `handoff` |
+| 写 skill / 写 `AGENTS.md` | `writing-for-agents` |
+| 解 git 合并 / 变基冲突 | `resolving-merge-conflicts` |
+| 从 GitHub 装一个新 skill | `install-github-skill` |
+| 新装了 agent、读不到 skill | `agent-skill-wiring` |
+| 抓串口日志 / 交互 shell | `serial-monitor` ⚠️ / `serial-shell` ⚠️ |
+| 静态分析（cppcheck / clang-tidy） | `static-analysis` ⚠️ |
+| 做 / 改汇报 PPT | `ppt-master` ⚠️ |
+
 ### 17 个 skill 按链路分组
 
 | 链路 | 干什么 | 目录名 |
