@@ -3,7 +3,7 @@
 """_gatecore.py — 开工证闸门的**唯一判定实现**（两个钩子共用）。
 
 为什么要有它：`~/.ai-skills/hooks/skill_gate.py` 与
-`workbench/hooks/workbench_gate.py` 是**同一套判据**的两个宿主 —— 不抽出来就会各改各的、
+`rules/hooks/workbench_gate.py` 是**同一套判据**的两个宿主 —— 不抽出来就会各改各的、
 慢慢漂开。本仓 2026-09-30 已因"两份独立实现"收口过一次（`preflight.py` / `gate.py`
 改薄转发，见 `CHANGELOG.md`），这里是同一手法的延续。
 

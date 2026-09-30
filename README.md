@@ -95,7 +95,7 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 | Trae CN 系 6 个 | `build-cmake` · `debug-jlink` · `flash-jlink` · `serial-monitor` · `serial-shell` · `static-analysis` | 平台自带，版权归属不明；**非 Trae 用户拿不到** |
 
 > 它们仍由 `skillman` 统一挂到各客户端（与进仓的 skill 一视同仁），只是**不随本仓发布**。
-> 详见本机工作台的 `workbench/machine.md` §3.1。
+> 详见本机工作台的 `rules/machine.md` §3.1。
 
 ### 嘉立创 EDA 链的前置（一次准备）
 
@@ -123,7 +123,7 @@ AI → 它的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → ED
   且**必须带 `EASYEDA_INSTALL_SKILLS=none`** —— 否则它会把 skill 写进 `~/.codex/skills/easyeda-agent`，
   而那是宿主工作台 `skillman` 管的「逐项挂载」端，会打架。skill 单独放进 `~/.ai-skills/` 由 `skillman` 统一挂 10 端。
 - **它是本地层**：走 `.gitignore` 的第三方大件（**不进本仓**）；升级 = 重下 `skills.tar.gz` 覆盖目录。
-- **本机适配不改上游文件**（它自带 `easyeda update`，改了会被覆盖）；机器事实与适配写在工作台 `workbench/machine.md` §3.1。
+- **本机适配不改上游文件**（它自带 `easyeda update`，改了会被覆盖）；机器事实与适配写在工作台 `rules/machine.md` §3.1。
 - 环境要求：EasyEDA Pro **V4**（推荐 V4.1.60+）+ 连接器 `.eext` + 工程开「允许外部交互」。
 
 ## 三条命令

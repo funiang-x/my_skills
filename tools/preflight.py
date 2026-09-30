@@ -13,7 +13,7 @@
 
 **可传协议文件 / 证池 / skill 目录**（本工作台之外的宿主用它复用同一实现，见下）：
     python tools/preflight.py --protocol /path/to/01_任务路由协议.md \
-        --state /path/to/workbench/.state/preflight.json \
+        --state /path/to/rules/.state/preflight.json \
         --skills ~/.ai-skills --noun 操作类型 --ref 01_任务路由协议 硬件/落图
 
 开工证绑定**每个 skill 内容的 sha256** —— 所以**改了 skill 就必须重新走一遍**，旧证自动作废。

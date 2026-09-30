@@ -15,7 +15,7 @@
 判定：把动作的**目标**（写哪个文件 / 跑什么命令）与 `tools/ops.json` 的 zone 比对；
 命中 zone 就要求存在**新鲜开工证**（≤8h 且 skill 内容未变，见 `tools/preflight.py`）。
 
-**判定实现在 `tools/_gatecore.py`**（唯一实现，与 `workbench/hooks/workbench_gate.py` 共用）。
+**判定实现在 `tools/_gatecore.py`**（唯一实现，与 `rules/hooks/workbench_gate.py` 共用）。
 2026-09-30 重构批次 1：判据从「整条命令串里找工具名」改成「看动作实际碰什么」
 （`argv[0] ∈ executables` 或 `目标路径 ∈ paths`）—— 详见 `_gatecore.py` 头部注释。
 

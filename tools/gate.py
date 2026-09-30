@@ -12,7 +12,7 @@
     _here = os.path.dirname(os.path.abspath(__file__))
     for _d in (os.environ.get("SKILLS_TOOLS"),
                os.path.abspath(os.path.join(_here, "..", "..", "tools")),
-               os.path.abspath(os.path.join(_here, "..", "..", "..", "..", "workbench", "tools"))):
+               os.path.abspath(os.path.join(_here, "..", "..", "..", "..", "rules", "tools"))):
         if _d and os.path.isfile(os.path.join(_d, "gate.py")):
             sys.path.insert(0, _d)
             break
@@ -27,7 +27,7 @@
   · **只拦"写"类动作**；只读脚本（如 `audit_sch.py`）不接闸门——读不需要许可。
   · 证池**并集**语义（本库池 + 宿主工作台池，见 `state_files()`）—— 一份实现同时服务
     两种宿主布局，证与钩子层结论永远一致。
-  · **实现只有这一份**（2026-09-30 收口）：外面的工作台（如 `Project/workbench/tools/gate.py`）
+  · **实现只有这一份**（2026-09-30 收口）：外面的工作台（如 `Project/rules/tools/gate.py`）
     已改为薄转发到本文件；此前两边各一份，改一处忘一处、两个证池互不承认。
 """
 from pathlib import Path
@@ -52,13 +52,13 @@ def state_files() -> list:
 
     为什么不写死一个池：本闸门同时服务两种宿主布局 ——
       · 本库自身（`REPO/.state/preflight.json`）
-      · 外面的工作台（如 `Project/workbench/.state/preflight.json`）
-    skill 脚本的 gate 探测是「先 CWD 向上找 `workbench/tools`、再找本库 `tools`」，
+      · 外面的工作台（如 `Project/rules/.state/preflight.json`）
+    skill 脚本的 gate 探测是「先 CWD 向上找 `rules/tools`、再找本库 `tools`」，
     所以**同一份 gate.py 会在两种布局下被加载**。写死一个池，另一种布局就拿不到证，
     闸门会静默变成"永远拦"或"永远放行"。
 
     优先级：环境变量 `SKILL_GATE_STATE`（`os.pathsep` 分隔）→ CWD 向上 8 层
-    （`<d>/workbench/.state/` 与 `<d>/.state/`）→ 本库池。
+    （`<d>/rules/.state/` 与 `<d>/.state/`）→ 本库池。
     """
     out = []
     for p in (os.environ.get("SKILL_GATE_STATE") or "").split(os.pathsep):
@@ -66,7 +66,7 @@ def state_files() -> list:
             out.append(Path(p.strip()))
     d = Path.cwd().resolve()
     for _ in range(8):
-        out.append(d / "workbench" / ".state" / "preflight.json")
+        out.append(d / "rules" / ".state" / "preflight.json")
         out.append(d / ".state" / "preflight.json")
         if d.parent == d:
             break

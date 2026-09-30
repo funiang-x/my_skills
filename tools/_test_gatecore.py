@@ -119,9 +119,9 @@ if host and (host / "tools" / "ops.json").is_file():
     tag = "宿主 %s" % host.name
     command_suite(tag, H_OPS)
     print("\n=== %s：路径判定 ===" % tag)
-    for rel, want in (("products/P/hardware/a.kicad_sch", True),
-                      ("products/P/firmware/main.c", True),
-                      ("workbench/00_总纲.md", True),
+    for rel, want in (("projects/P/hardware/a.kicad_sch", True),
+                      ("projects/P/firmware/main.c", True),
+                      ("rules/00_总纲.md", True),
                       ("_review-bak/x.md", False)):
         path_case(rel, H_OPS, host.parent, host.parent / rel, want)
     hook_suite(tag, host / "hooks" / "workbench_gate.py")
