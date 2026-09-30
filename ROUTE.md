@@ -19,6 +19,11 @@
 
 然后**先输出路由声明**（§3），再动手。顺序反了（先干再补声明）等于没做。
 
+> **判不出"现在处在哪个阶段"**（而不是"这是什么类型的任务"）→ 读 [`WORKFLOW.md`](WORKFLOW.md)：
+> 那是同一批 skill 的**阶段视图**（需求 → 选型 → 原理图 → 落图 → 固件 → 调试 → 文档），
+> 每阶段给了交付物与验收判据。
+> **两份分工**：`ROUTE.md` 管"**用哪个 skill**"（任务视图），`WORKFLOW.md` 管"**按什么阶段做**"（阶段视图）。
+
 **为什么第 ⓪ 步是"拿证"**：长文档进上下文会被压缩，关键条款会丢——"放在显眼处提醒"治不了这个，
 只有"不做就走不下去"能治。`preflight.py` 把该读的条款**正文**打印出来；没证去做改动动作，
 会被 `hooks/skill_gate.py`（PreToolUse 钩子）拦下——装法见 `templates/hook-settings.json`。
@@ -86,7 +91,7 @@
 **2026-09-30 起本机已采用它**：装的是**本地层**（`.gitignore` 的第三方大件，不进本仓），
 skill 目录 `~/.ai-skills/easyeda-agent/`（由 `skillman` 统一挂 10 端，**不是**它的 installer 管的
 ——装 CLI 时用 `EASYEDA_INSTALL_SKILLS=none` 避免双头管理）。
-本机适配与机器事实写在宿主工作台（`workbench/machine.md` §3.1），**不改上游文件**
+本机适配与机器事实写在**宿主工作台**的机器事实单一源文档 §3.1（不在本仓），**不改上游文件**
 （它自带 `easyeda update`，本地改动会被覆盖）。
 
 ## 3. 路由声明（固定格式，贴在回复开头）
@@ -106,9 +111,9 @@ skill 目录 `~/.ai-skills/easyeda-agent/`（由 `skillman` 统一挂 10 端，*
 示例：
 
 ```
-[ROUTE] 类型=硬件/落图 | skill=easyeda-schematic-net-fanout,easyeda-api | 参考=docs/电源板需求.md | 证=1a2b3c4d5e6f | 依据=ROUTE.md
+[ROUTE] 类型=硬件/落图 | skill=easyeda-agent,easyeda-api | 参考=WORKFLOW.md §2.1 | 证=1a2b3c4d5e6f | 依据=ROUTE.md
 [ROUTE] 类型=软件/编码 | skill=ponytail | 参考=无 | 证=6f5e4d3c2b1a | 依据=ROUTE.md
-[ROUTE] 类型=通用/访谈与文档 | skill=grilling,grill-me | 参考=无 | 证=无 | 依据=ROUTE.md
+[ROUTE] 类型=通用/访谈与文档 | skill=grilling,handoff,writing-for-agents | 参考=无 | 证=无 | 依据=ROUTE.md
 ```
 
 ## 4. 收工自检（四问）

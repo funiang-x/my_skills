@@ -119,6 +119,6 @@ agent_created: true
 
 ## 交接关系
 
-- 需要写固件架构或 STM32 HAL 落地时，后续交给 `stm32-hal-cli-flow`（本机四层工程链）或 `embedded_stm32`（入口索引）。
+- 需要写固件架构或 STM32 HAL 落地时，后续交给 `stm32-hal-cli-flow`（本机四层工程链）。
 - 需要开发传感器、存储器、显示屏等 BSP 驱动时：随工程写码进行，无专用 skill。
 - 需要编译、烧录、串口调试时，后续交给对应 `build-cmake`、`flash-jlink`、`serial-monitor` 等 skill。

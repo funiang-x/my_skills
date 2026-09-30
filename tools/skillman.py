@@ -355,13 +355,46 @@ def frontmatter_ok(d: Path):
     return True, "ok"
 
 
+def workflow_skill_names(text):
+    """取 WORKFLOW.md §2 表格里「必载 skill」列（第 3 列）的反引号 skill 名。
+
+    **只取那一列、不扫全文**：全文里还有 `doctor` / `—` / `ROUTE.md` 这类反引号词，
+    扫全文会把它们误判成 skill 名。列定位口径与 ROUTE.md §2 的解析保持一致。
+    """
+    if "## 2." not in text:
+        return []
+    sec = text.split("## 2.", 1)[1].split("## 3.", 1)[0]
+    out = []
+    for line in sec.splitlines():
+        if not line.startswith("|") or line.startswith("|---"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        out.extend(re.findall(r"`([a-z0-9][a-z0-9_-]*)`", cells[2]))
+    return sorted(set(out))
+
+
+def local_layer_names():
+    """从 .gitignore 解析「本地层」目录名（`/name/` 形式）。
+
+    本名单是**公开层 / 本机层的分界线**，也是漂移检查的放行名单——
+    磁盘上已删的名字若还留在这里，会**放行本不该放行的引用**（2026-09-30 清过 4 个）。
+    """
+    gi = REPO / ".gitignore"
+    if not gi.is_file():
+        return set()
+    return set(re.findall(r"^/([A-Za-z0-9_.-]+)/$",
+                          gi.read_text(encoding="utf-8", errors="replace"), re.M))
+
+
 def cmd_doctor():
     print("skillman doctor（只读体检）\n")
     errors, warns, oks = [], [], []
 
     # 1. 本库完整性
     print("[1/5] 本库完整性")
-    required = ["ROUTE.md", "AGENTS.md", "README.md", "tools/preflight.py",
+    required = ["ROUTE.md", "WORKFLOW.md", "AGENTS.md", "README.md", "tools/preflight.py",
                 "hooks/skill_gate.py", "tools/ops.json"]
     for rel in required:
         if (REPO / rel).exists():
@@ -439,6 +472,29 @@ def cmd_doctor():
             warns.append("未在 ROUTE.md 出现：%s" % ",".join(noref))
             print("  ⚠ 未在公开路由表出现（%d 个，若为本地扩展 skill 属正常，"
                   "请在本地增量表登记）：%s" % (len(noref), ", ".join(noref[:12])))
+
+        # 4b. WORKFLOW.md 防漂 —— 阶段视图里的 skill 名必须 ⊆（ROUTE.md §2 ∪ .gitignore 本地层）
+        #
+        # 为什么要有这条：WORKFLOW.md 的「必载 skill」列是对 ROUTE.md §2 的**复述**
+        # （同一批 skill 按阶段重排一遍），**复述就会漂**。写了 ROUTE.md 里没有的名字，
+        # agent 照 WORKFLOW.md 装载 → 装空或装错，而两份文档各自看都"没问题"。
+        # 允许名单必须含**本地层**：ROUTE.md §2 是公开表，本不该出现平台自带/第三方大件的名字，
+        # 但 WORKFLOW.md 是阶段视图、会点它们的名（如落图阶段的 easyeda-agent）——这是正常的。
+        wf = REPO / "WORKFLOW.md"
+        _local = local_layer_names()
+        if not wf.is_file():
+            errors.append("缺文件：WORKFLOW.md（流程阶段视图）")
+            print("  ✗ 缺 WORKFLOW.md")
+        else:
+            _allowed = set(referenced) | _local
+            _drift = [n for n in workflow_skill_names(wf.read_text(encoding="utf-8"))
+                      if n not in _allowed]
+            if _drift:
+                errors.append("WORKFLOW.md 漂移：%s 不在 ROUTE.md §2，也不在 .gitignore 本地层"
+                              % ",".join(_drift))
+                print("  ✗ WORKFLOW.md 漂移：%s" % ", ".join(_drift))
+            else:
+                print("  ✓ WORKFLOW.md 与 ROUTE.md §2 一致（放行本地层 %d 个）" % len(_local))
     except Exception as e:                                       # noqa: BLE001
         warns.append("路由解析不可用：%r" % e)
         print("  ⚠ 路由解析不可用：%r" % e)

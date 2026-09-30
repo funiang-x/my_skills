@@ -29,8 +29,8 @@ checks = [
     ("第三方大件 ppt-master 混入",
      r"^ppt-master/"),
     ("Trae 系 skill 混入",
-     r"^(build-cmake|debug-jlink|flash-jlink|memory-analysis|rtos-debug|"
-     r"serial-monitor|serial-shell|static-analysis|embedded_stm32|workflow|shared)/"),
+     r"^(build-cmake|debug-jlink|flash-jlink|"
+     r"serial-monitor|serial-shell|static-analysis|shared)/"),
     ("运行态 .state 混入",
      r"^\.state/|/\.state/"),
     ("第三方克隆 embedded_ai_skills 混入",
@@ -52,7 +52,7 @@ tops = sorted({f.split("/")[0] for f in files})
 print("\n顶层条目（%d）：" % len(tops))
 print(", ".join(tops))
 
-must = ["ROUTE.md", "AGENTS.md", "README.md", "LICENSE", ".gitignore",
+must = ["ROUTE.md", "WORKFLOW.md", "AGENTS.md", "README.md", "LICENSE", ".gitignore",
         "tools/preflight.py", "tools/skillman.py", "tools/gate.py", "tools/ops.json",
         "tools/skill_audit.py",
         "hooks/skill_gate.py", "templates/global-door.md", "templates/project-door.md",

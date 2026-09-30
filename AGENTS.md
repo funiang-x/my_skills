@@ -14,6 +14,7 @@
 ## 本仓库速览
 
 - **这是什么**：嵌入式全流程的 skill 集（选型 → 原理图 → 固件 → 调试 → 工程方法），见 `README.md`
+- **两份文档分工**：`ROUTE.md` = **用哪个 skill**（任务视图）· `WORKFLOW.md` = **按什么阶段做**（阶段视图，含交付物与验收判据）
 - **skill 位置**：仓库根级 `<name>/SKILL.md`（每个含 `SKILL.md` 的一级目录 = 一个 skill）
 - **三条命令**：`python tools/skillman.py install | sync | doctor`（装到各客户端 / 更新 / 体检）
 - **加/改/退 skill**：按 `ROUTE.md` §2.3「环境/改技能」规程
