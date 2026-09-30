@@ -39,6 +39,10 @@ CLIENTS = [
     ("CodeBuddy CN", "~/.codebuddycn/skills",         "junction", "~/.codebuddycn"),
     ("Trae CN",      "~/.trae-cn/skills",             "junction", "~/.trae-cn"),
     ("Doubao",       "~/Doubao/skills",               "junction", "~/Doubao"),
+    # DeepSeek Harness（DSH）：扫描 `~/.dsh/skills` 与 `~/.agents/skills`（按优先级，都认）；
+    # 用户级规则文件是 `~/.dsh/AGENTS.md`。这里选**跨工具约定根** `~/.agents/skills`
+    # （2026-09-30 用户拍板：将来遵循同一约定的客户端也能复用这份接线）。
+    ("DeepSeekHarness", "~/.agents/skills",           "junction", "~/.dsh"),
     ("Codex",        "~/.codex/skills",               "per-item", "~/.codex"),
     ("FittenCode",   "~/.fittencode/skills/external", "per-item", "~/.fittencode"),
     ("Marvis",       "~/.marvis/skills/custom",       "per-item", "~/.marvis"),
@@ -57,7 +61,14 @@ GLOBAL_DOORS = [
     "~/.workbuddy-ai/MEMORY.md",
     "~/.trae-cn/memory/user_profile.md",
     "~/.qoder/memory/MEMORY.md",
+    "~/.dsh/AGENTS.md",
 ]
+
+# 例外：可以**新建**的用户级规则文件（父目录存在才建）。每条都要写理由——
+# 它是该客户端唯一可靠的用户级规则入口，缺了整条触发链就没有起点。
+GLOBAL_DOOR_CREATABLE = {
+    "~/.dsh/AGENTS.md": "DeepSeek Harness 用户级规则文件（`~/.dsh` 是其配置根；2026-09-30 探明）",
+}
 
 MARK_BEGIN = "<!-- my_skills:global-door -->"
 MARK_END = "<!-- /my_skills:global-door -->"
@@ -218,6 +229,7 @@ def plan_client(name, skills_dir, how, probe_dir, apply):
         if sd.exists():
             return "warn", "skills 目录是实体目录（非链接）——人工处理后重跑"
         if apply:
+            sd.parent.mkdir(parents=True, exist_ok=True)   # 新客户端可能尚无父目录（如 ~/.agents）
             ok = make_link(sd, REPO)
             return ("ok" if ok else "warn"), ("已创建 Junction → 本库" if ok else "创建失败")
         return "plan", "计划：创建 Junction → 本库"
@@ -278,8 +290,8 @@ def cmd_install(apply: bool):
     for name, sd, how, pd in CLIENTS:
         lv, msg = plan_client(name, sd, how, pd, apply)
         stats[lv] = stats.get(lv, 0) + 1
-        print("  %-13s %-32s %s" % (name, disp(Path(sd).expanduser()), msg))
-    print("  %-13s %-32s %s" % ("Qoder", "—", "无 skills 目录约定，只走规则门（用全局门/项目门）"))
+        print("  %-16s %-32s %s" % (name, disp(Path(sd).expanduser()), msg))
+    print("  %-16s %-32s %s" % ("Qoder", "—", "无 skills 目录约定，只走规则门（用全局门/项目门）"))
 
     print("\n[全局门]")
     door_hit = False
@@ -287,6 +299,15 @@ def cmd_install(apply: bool):
         p = Path(cand).expanduser()
         lv, msg = door_status(p)
         if lv == "absent":
+            # 可新建的白名单（父目录存在才建）——否则按"只写已存在文件"跳过
+            if cand in GLOBAL_DOOR_CREATABLE and p.parent.exists():
+                door_hit = True
+                if apply:
+                    p.write_text(door_text() + "\n", encoding="utf-8")
+                    msg = "已新建（%s）" % GLOBAL_DOOR_CREATABLE[cand]
+                else:
+                    msg = "计划：新建用户级规则文件——%s" % GLOBAL_DOOR_CREATABLE[cand]
+                print("  %-28s %s" % (disp(p), msg))
             continue
         door_hit = True
         if lv == "plan" and apply:
@@ -415,7 +436,7 @@ def cmd_doctor():
             tgt = link_target(sdp)
             if tgt is None:
                 warns.append("%s 未接（%s 不是链接）" % (name, disp(sdp)))
-                print("  ✗ %-13s 未接" % name)
+                print("  ✗ %-16s 未接" % name)
                 continue
             try:
                 same = Path(tgt).resolve() == REPO.resolve()
@@ -423,10 +444,10 @@ def cmd_doctor():
                 same = False
             if same:
                 oks.append(name)
-                print("  ✓ %-13s → 本库" % name)
+                print("  ✓ %-16s → 本库" % name)
             else:
                 warns.append("%s 指向 %s" % (name, tgt))
-                print("  ✗ %-13s 指向别处" % name)
+                print("  ✗ %-16s 指向别处" % name)
         else:
             probe = sdp / PROBE / "SKILL.md"
             st = stale_links(sdp, skills)
@@ -434,10 +455,10 @@ def cmd_doctor():
                 warns.append("%s 有 %d 个悬空接线：%s" % (name, len(st), ",".join(st[:4])))
             if probe.exists():
                 oks.append(name)
-                print("  ✓ %-13s 探针穿透%s" % (name, "（✂ 残留 %d 待清）" % len(st) if st else ""))
+                print("  ✓ %-16s 探针穿透%s" % (name, "（✂ 残留 %d 待清）" % len(st) if st else ""))
             else:
                 warns.append("%s 探针不通（缺 %s）" % (name, disp(probe)))
-                print("  ✗ %-13s 探针不通" % name)
+                print("  ✗ %-16s 探针不通" % name)
 
     # 3. skill 可调用性
     print("[3/5] skill 可调用性（%d 个）" % len(skills))

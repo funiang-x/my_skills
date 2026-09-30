@@ -8,6 +8,7 @@ description: >
   delete", "is this over-engineered", "simplify review", or invokes
   /ponytail-review. Complements correctness-focused review, this one only
   hunts complexity.
+  中文触发：说「只审查这次改动 / 有没有过度设计 / 有什么能删」时使用。
 ---
 
 Review diffs for unnecessary complexity. One line per finding: location, what

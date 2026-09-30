@@ -7,6 +7,7 @@ description: >
   codebase", "audit for over-engineering", "what can I delete from this repo",
   "find bloat", "ponytail-audit", or "/ponytail-audit". One-shot report, does
   not apply fixes.
+  中文触发：说「审计整个仓库 / 有什么能删 / 查过度工程」时使用。
 ---
 
 ponytail-review, repo-wide. Scan the whole tree instead of a diff. Rank

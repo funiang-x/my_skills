@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Compact the current conversation into a handoff document for another agent to pick up.
+description: Compact the current conversation into a handoff document for another agent to pick up. 中文触发：要把当前会话整理成交接文档给另一个 agent 时使用（不会自动触发，需点名）。
 argument-hint: "What will the next session be used for?"
 disable-model-invocation: true
 ---

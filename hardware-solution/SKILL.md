@@ -1,6 +1,6 @@
 ---
 name: hardware-solution
-description: "Use when the user needs embedded hardware architecture, MCU/SoC selection, power tree design, interface planning, sensor/actuator selection, RF/connectivity, BOM risk assessment, PCB/layout constraints, schematic-ready proposals, validation plans, or hardware design review."
+description: "Use when the user needs embedded hardware architecture, MCU/SoC selection, power tree design, interface planning, sensor/actuator selection, RF/connectivity, BOM risk assessment, PCB/layout constraints, schematic-ready proposals, validation plans, or hardware design review. 中文触发：嵌入式硬件方案、选 MCU/器件、电源树、接口规划、BOM 风险、方案评审时使用。"
 agent_created: true
 ---
 

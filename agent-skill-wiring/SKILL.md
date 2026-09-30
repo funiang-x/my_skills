@@ -21,9 +21,13 @@ metadata:
 
 | 情况 | 接法 | 典型实例 |
 |---|---|---|
-| 干净 / 目录不存在 | **整体 Junction**：整个 skills 目录 → `~/.ai-skills/` | `~/.trae-cn/skills`、`~/.codebuddycn/skills`、`~/Doubao/skills` |
+| 干净 / 目录不存在 | **整体 Junction**：整个 skills 目录 → 共享库 | `~/.trae-cn/skills`、`~/.codebuddycn/skills`、`~/Doubao/skills`、`~/.agents/skills`（DSH 用） |
 | 目录里有官方机制文件 | **逐项挂载**：每个 skill 单独建 Junction，机制目录原样保留 | `~/.codex/skills/<each>`（留 `.system/`）、`~/.fittencode/skills/external/<each>`（留 `.default/`）、`~/.marvis/skills/custom/<each>` |
 | 该工具没有 skills 概念 | 不接，只做规则门 | Qoder |
+
+> **没有 skills 机制的 agent 也能用本库**：让它按全局门读 `ROUTE.md`，
+> 按装配表**直接读** `<共享库>/<skill>/SKILL.md` 正文干活——协议本身不依赖任何平台特性。
+> 新建 Junction 前先确保**父目录存在**（如 `~/.agents`），`mklink /J` 不会自动建父目录。
 
 整体 Junction 的写法 —— **踩过的坑**：别用 `subprocess.run([...])` 传参数列表，cmd 内建命令
 会把引号吞掉、报 `无效参数 - "Users"`：
@@ -46,9 +50,13 @@ subprocess.run(cmd, shell=True)                 # shell=True + 完整字符串�
 
 | 门 | 谁读 | 要点 |
 |---|---|---|
-| `AGENTS.md` | ZCode · WorkBuddy · WorkBuddy AI · CodeBuddy · CodeBuddy CN · Qoder · Codex · FittenCode · Marvis | 跨工具通用规范 |
+| `AGENTS.md` | ZCode · WorkBuddy · WorkBuddy AI · CodeBuddy · CodeBuddy CN · Qoder · Codex · FittenCode · Marvis · **DeepSeek Harness（`~/.dsh/AGENTS.md`）** | 跨工具通用规范 |
 | `.trae/rules/project_rules.md` | Trae Work CN / TraeCode CN | **自动读、不需要开关**——Trae 唯一可靠入口 |
 | `CLAUDE.md` | Claude Code / TraeCode 系 | 转发层，读到这里转入 `AGENTS.md` |
+
+**用户级规则文件按「存在才写、白名单才建」处理**：`skillman.py install` 只写已存在的门文件；
+对**唯一入口且父目录已在**的客户端（如 DeepSeek Harness 的 `~/.dsh/AGENTS.md`），
+用 `GLOBAL_DOOR_CREATABLE` 白名单**新建**——每加一条都要写理由。
 
 **最容易漏的一条**：Trae 读 `AGENTS.md` 要在「设置 → 规则 → 导入设置」里**手动打开
 "将 AGENTS.md 包含在上下文中"**（AI 做不了）；所以项目根没有 `.trae/rules/` 时，Trae 在这个

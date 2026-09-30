@@ -13,6 +13,7 @@ description: >
   over-engineering, bloat, boilerplate, or unnecessary dependencies. Do NOT
   use for non-coding requests (general knowledge, prose, translation,
   summaries, recipes).
+  中文触发：写 / 改 / 重构 / 审查任何代码、或选依赖时使用；说「ponytail」「最懒」「极简」「别过度设计」「能删就删」也触发。
 argument-hint: "[lite|full|ultra]"
 license: MIT
 ---
