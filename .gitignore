@@ -2,11 +2,14 @@
 #  本地层（不进公开仓）—— 此清单即「公开 / 本机」的分界线
 # ============================================================
 
-# Trae CN 平台自带的 skill（版权归属不明，仅本机使用；含其机制目录 shared/）
-#
 # 2026-09-30 清掉 4 个**已退役**项（memory-analysis / rtos-debug / embedded_stm32 / workflow）——
 # 它们的目录已从磁盘删除。**为什么必须清**：本名单同时是 check_workbench.py 的
 # 「本地层白名单」——名单里留着磁盘上不存在的名字，会让漂移检查**放行本不该放行的引用**。
+#
+# ⚠️ 注意：`tools/skill_audit.py` 判来源（platform / vendor / local）靠的是**条目上方最近的
+# 那条非空注释**——所以上面这段说明必须放在本行**之前**，否则分类会从 platform 掉成 local。
+
+# Trae CN 平台自带的 skill（版权归属不明，仅本机使用；含其机制目录 shared/）
 /build-cmake/
 /debug-jlink/
 /flash-jlink/
