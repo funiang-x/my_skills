@@ -4,4 +4,6 @@ description: A relentless interview to sharpen a plan or design, which also crea
 disable-model-invocation: true
 ---
 
-Call the Skill tool twice, for "grilling" and "domain-modeling".
+Call the Skill tool with "grilling".
+
+（原设计还会调 `domain-modeling` 补 ADR/glossary——该 skill 已退库；需要文档产物时在需求里明说。）
