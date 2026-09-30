@@ -126,7 +126,7 @@ python "$SK" shot --file board.epro2 --doc AFE --zoom 2300,1120,2 --out ./_view/
 - Node 用你机器上能用的 node（≥18）；可用 `EASYEDA_VIEWER_NODE` 指定解释器，
   否则走 PATH 里的 `node`。`vite-node` 入口是仓库内的 `node_modules/vite-node/vite-node.mjs`。
 - 面板/对象树/属性面板都可点，**只读**——不要指望它改图；改图回 EDA（见 skill
-  `easyeda-schematic-net-fanout`）。
+  `easyeda-agent`）。
 
 ## 边界（别越界）
 

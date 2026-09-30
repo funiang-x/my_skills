@@ -10,6 +10,7 @@
   ③ 死链                 正文里引用的 skill 本地文件（scripts/… · LESSONS.md）是否存在
   ④ 重叠                 同一任务类型下 ≥2 个 skill 的触发词重合度 —— 冗余候选
   ⑤ 孤儿                 在库但未登记进 ROUTE.md §2 —— 永远不会被路由到
+  ⑥ 退役引用             正文里点名了**已退库**的 skill 名 —— 照它走会装载失败
 
 **它不下判决**。删/留是人拍板（见 README「维护」节）；本脚本只把证据摆齐。
 
@@ -17,7 +18,8 @@
     python tools/skill_audit.py            # 打印报告（默认，只读）
     python tools/skill_audit.py --write    # 写入 SKILL_AUDIT.md
     python tools/skill_audit.py --json     # 机器可读
-退出码：0 = 无高危项；1 = 有（死链 / 孤儿 / 重叠对）
+退出码：0 = 无高危项；1 = 有（**公开层**孤儿 / **公开层**正文引用了已退役 skill）
+        —— 死链 · 重叠 · 本地层退役引用是启发式信号，只报不判失败（见各节说明）。
 """
 import json
 import re
@@ -229,6 +231,53 @@ def is_forwarder(skill_dir: Path) -> bool:
     return len(body) < 200 and bool(re.search(r"call the skill tool", body, re.I))
 
 
+# ---------------------------------------------------------------- retired refs
+
+def retired_names() -> dict:
+    """→ {已退役的 skill 名: 备份区目录名}。
+
+    **判据是结构证据，不是猜名字**：取 `.state/backup-*/` 下各目录 `SKILL.md` 的
+    frontmatter `name`；**名字仍在盘上的不算**。
+
+    为什么用 frontmatter name 而不是目录名：备份区里 `daemon-installed-easyeda-agent/`
+    是**实体拷贝**的备份（2026-09-30 daemon 顶掉 Junction 那次），它的 name 是
+    `easyeda-agent` —— skill 本身**还活着**，按目录名入名单就是误报。
+
+    为什么不用「形状像 skill 名的反引号 token」：2026-09-30 实测 —— 全库 SKILL.md 正文里
+    含连字符/下划线的反引号 token 有 **58 个**不在盘上，其中**只有 3 个**是真死链，
+    其余是配置键（`baud_rate`）· 工具名（`arm-none-eabi-gcc`）· 错误码（`environment-missing`）·
+    PPT 模式名（`page_rhythm`）⇒ **形状判据在正文里 95% 是噪声，不可用**。
+    备份区是"曾经真的是本库 skill"的唯一结构证据。
+
+    **覆盖边界**：只认有备份的退役件。2026-09-30 起「退役 = 移入 `.state/backup-<日期>/`」
+    成为惯例，此后自动覆盖；更早退役且没留备份的名字查不到（那批已于 2026-09-29 人工清干净）。
+    """
+    disk = {d.name for d in REPO.iterdir() if d.is_dir()}
+    out = {}
+    for bk in sorted(REPO.glob(".state/backup-*")):
+        if not bk.is_dir():
+            continue
+        for d in sorted(bk.iterdir()):
+            if not (d / "SKILL.md").is_file():
+                continue
+            name = (frontmatter(d).get("name", "") or d.name).strip().strip("\"'")
+            if name and name not in disk:
+                out[name] = bk.name
+    return out
+
+
+def retired_refs(skill_dir: Path, retired: dict) -> list:
+    """正文里点名了**已退役**的 skill（照它走会装载到不存在的 skill）。
+
+    只认**反引号精确匹配** —— 已退名字在正文里若不写反引号（本库的既有约定）就不会被算进来。
+    """
+    p = skill_dir / "SKILL.md"
+    if not p.is_file() or not retired:
+        return []
+    txt = p.read_text(encoding="utf-8", errors="replace")
+    return sorted(n for n in retired if "`%s`" % n in txt)
+
+
 # ---------------------------------------------------------------- overlap
 
 def route_groups() -> dict:
@@ -266,6 +315,7 @@ def main() -> int:
     local = local_layer()
     up = upstream_from_readme()
     groups = route_groups()
+    retired = retired_names()
     routed = {n for v in groups.values() for n in v}
 
     rows = []
@@ -288,6 +338,7 @@ def main() -> int:
             "desc": desc,
             "words": words(desc),
             "dead": dead_links(d),
+            "retired_refs": retired_refs(d, retired),
             "forwarder": is_forwarder(d),
             "routed": d.name in routed,
             "tasks": [t for t, v in groups.items() if d.name in v],
@@ -325,6 +376,11 @@ def main() -> int:
     overlaps.sort(key=lambda x: -x[2])
 
     dead = [r for r in rows if r["dead"]]
+    # 退役引用：正文点名了已退库的 skill 名 —— 照它走会**装载失败**，比死链更硬。
+    # 但只有**公开层**算硬缺陷：本地层（平台自带 / 第三方大件）不随本仓发布，
+    # 2026-09-30 已有"留存 skill 的软引用不阻断使用"的判据 —— 报出来给人判，不改退出码。
+    retired_hits = [r for r in rows if r["retired_refs"]]
+    retired_pub = [r for r in retired_hits if r["origin"] not in ("platform", "vendor")]
     # 孤儿 = 公开层 skill 却没登记进 ROUTE.md §2（发布出去也路由不到）。
     # 平台自带 / 第三方大件本来就不进公开路由表 → 单列，不算缺陷。
     orphan = [r for r in rows if not r["routed"] and r["origin"] not in ("platform", "vendor")]
@@ -337,9 +393,12 @@ def main() -> int:
                                      for r in rows],
                           "overlaps": overlaps,
                           "orphan": [r["name"] for r in orphan],
-                          "dead": {r["name"]: r["dead"] for r in dead}},
+                          "dead": {r["name"]: r["dead"] for r in dead},
+                          "retired_refs": {r["name"]: r["retired_refs"] for r in retired_hits},
+                          "retired_refs_public": [r["name"] for r in retired_pub]},
                          ensure_ascii=False, indent=2))
-        return 1 if (dead or orphan or overlaps) else 0
+        # 与文本分支同一口径（原两处不一致：这里曾把死链/重叠也算失败，docstring 却不是这么写的）
+        return 1 if (orphan or retired_pub) else 0
 
     L = []
     A = L.append
@@ -348,8 +407,10 @@ def main() -> int:
     A("> 由 `tools/skill_audit.py --write` 生成（只读审计，不下判决）。")
     A("> 删 / 留由人拍板；改来源标签后重跑本脚本。")
     A("")
-    A("共 **%d** 个 skill · 死链 **%d** · 公开层孤儿 **%d** · 重叠对 **%d** · 薄壳 **%d** · 待标来源 **%d**"
-      % (len(rows), len(dead), len(orphan), len(overlaps), len(forwarders), len(untagged)))
+    A("共 **%d** 个 skill · 死链 **%d** · 退役引用 **%d**（公开层 %d）· 公开层孤儿 **%d** · "
+      "重叠对 **%d** · 薄壳 **%d** · 待标来源 **%d**"
+      % (len(rows), len(dead), len(retired_hits), len(retired_pub), len(orphan),
+         len(overlaps), len(forwarders), len(untagged)))
     A("")
     A("## 1. 总表（按来源分档，档内按 SKILL.md 行数降序）")
     A("")
@@ -392,7 +453,26 @@ def main() -> int:
     else:
         A("（无）")
     A("")
-    A("## 5. 公开层孤儿（在库、来源是上游/自研，却没登记进 ROUTE.md §2）")
+    A("## 5. 退役引用（正文点名了已退库的 skill —— 照它走会**装载失败**）")
+    A("")
+    A("> 判据：名字出现在 `.state/backup-*/` 各 `SKILL.md` 的 frontmatter `name` 里、"
+      "且**当前不在盘上** —— 结构证据，不猜名字。")
+    A("> **为什么不用「形状像 skill 名」**：2026-09-30 实测，全库正文里含连字符/下划线的"
+      "反引号 token 有 **58 个**不在盘上，其中**只有 3 个是真死链**，其余是配置键"
+      "（`baud_rate`）· 工具名（`arm-none-eabi-gcc`）· 错误码（`environment-missing`）· "
+      "PPT 模式名（`page_rhythm`）⇒ **形状判据 95% 是噪声**。")
+    A("")
+    if retired_hits:
+        A("| 点名者 | 已退役的名字 | 来源层 | 算不算硬缺陷 |")
+        A("|---|---|---|---|")
+        for r in retired_hits:
+            A("| `%s` | %s | %s | %s |"
+              % (r["name"], "、".join("`%s`" % x for x in r["retired_refs"]),
+                 r["origin"], "**是**" if r in retired_pub else "否（本地层不随仓发布）"))
+    else:
+        A("（无）")
+    A("")
+    A("## 6. 公开层孤儿（在库、来源是上游/自研，却没登记进 ROUTE.md §2）")
     A("")
     if orphan:
         for r in orphan:
@@ -400,12 +480,12 @@ def main() -> int:
     else:
         A("（无）")
     A("")
-    A("## 6. 未进公开路由表（平台自带 / 第三方大件 —— 这是**正常**的，列出来只为看清边界）")
+    A("## 7. 未进公开路由表（平台自带 / 第三方大件 —— 这是**正常**的，列出来只为看清边界）")
     A("")
     for r in unrouted:
         A("- `%s`（%s）" % (r["name"], r["origin"]))
     A("")
-    A("## 7. 待补来源标签")
+    A("## 8. 待补来源标签")
     A("")
     if untagged:
         A("frontmatter 缺 `metadata.source`（上游）或 `agent_created: true`（自研），")
@@ -424,11 +504,14 @@ def main() -> int:
     else:
         print(text)
 
-    print("\n[小计] 死链 %d · 公开层孤儿 %d · 重叠对 %d · 薄壳 %d · 待标来源 %d"
-          % (len(dead), len(orphan), len(overlaps), len(forwarders), len(untagged)))
-    # 退出码只认**硬缺陷**：公开层 skill 没进路由表 = 发布出去也路由不到。
-    # 死链 / 重叠是启发式信号，报出来给人判，不据此判失败。
-    return 1 if orphan else 0
+    print("\n[小计] 死链 %d · 退役引用 %d（公开层 %d）· 公开层孤儿 %d · 重叠对 %d · "
+          "薄壳 %d · 待标来源 %d"
+          % (len(dead), len(retired_hits), len(retired_pub), len(orphan),
+             len(overlaps), len(forwarders), len(untagged)))
+    # 退出码只认**硬缺陷**：① 公开层 skill 没进路由表（发布出去也路由不到）；
+    # ② 公开层正文点名了已退库的 skill（照它走会装载失败）。
+    # 死链 / 重叠 / **本地层**退役引用是启发式信号，报出来给人判，不据此判失败。
+    return 1 if (orphan or retired_pub) else 0
 
 
 if __name__ == "__main__":
