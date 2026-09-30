@@ -113,10 +113,15 @@
 ### 2.7 可选增强与降级路径（**装没装都能开工**）
 
 - **本地层第三方大件**（不随本仓发布；`doctor` 对它们缺失**只警告**，不算错误）：
-  - `easyeda-agent`（落图 / 布局 / 布线加强；[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)，MIT）：
-    `硬件/落图` 的加强项。**没装也能落图**——走 `easyeda-api` 自带的官方规程与 `references/`。
-    装它时**必带 `EASYEDA_INSTALL_SKILLS=none`**（否则它与本库的挂载机制双头打架），
+  - `easyeda-agent`（[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)，MIT）：
+    **落图链是它与 `easyeda-api` 配合使用的两条链路**——agent 出规程与 typed actions（CLI + daemon
+    + 自有 EDA 连接器），api 供 WebSocket 桥与 API 参考；`硬件/落图` **两个一起装**。
+    **只有没装 agent 的机器才降级**为 api 单跑（它自带官方规程与 `references/`）。
+    装 agent 时**必带 `EASYEDA_INSTALL_SKILLS=none`**（否则它与本库的挂载机制双头打架），
     再把它的 skill 目录放进本库、由 `skillman` 统一挂到各端。
+    **daemon 要常驻**：用 `easyeda daemon start --auto-update-skill=false`（关掉它的 skill 自动同步，
+    否则会顶掉你的 skill 接线）；常驻做法照 `easyeda-api` 那份**幂等 VBS** 的模式——
+    先 `easyeda daemon health` 判活（退 0 = 已在跑就跳过），再起。
   - `ppt-master`（汇报 PPT；[hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)）：
     `文档/汇报PPT` 的推荐项。没装时按工程自己的文档规范手工产出，不影响其余流程。
   - 逐项装法：`PREREQUISITES.md` §3。

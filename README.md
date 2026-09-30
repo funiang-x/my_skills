@@ -47,7 +47,7 @@
 | 你要做的事 | 装哪个 skill |
 |---|---|
 | 选 MCU / 选器件 / 比方案 | `hardware-solution` |
-| 画 / 改原理图、改网表、跑 DRC | `easyeda-api`（+ `easyeda-agent` ⚠️ 加强） |
+| 画 / 改原理图、改网表、跑 DRC | `easyeda-agent` ⚠️ + `easyeda-api`（**两者配合使用**） |
 | 离线看图纸、落图后视觉复核 | `easyeda-viewer` |
 | 写 / 改**任何**代码（含脚本） | `ponytail`（**强制，无例外**） |
 | 审查整个仓的过度工程 | `ponytail-audit`（**点名触发**） |
@@ -132,7 +132,7 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 
 | 目录 | 是什么 | 为什么不在仓里 |
 |---|---|---|
-| `easyeda-agent` | 落图 / 布局 / 布线的 **CLI 化规程**（第三方，MIT）—— `硬件/落图` 的加强项；**没装也能落图**（走 `easyeda-api` 自带规程） | 自带 `easyeda update` 自更新，本地改动会被覆盖；且是第三方大件 |
+| `easyeda-agent` | 落图 / 布局 / 布线的 **CLI 化规程**（第三方，MIT）—— 与 `easyeda-api` **配合使用**（它出 typed actions，api 出桥与 API 参考）；**只装 api 也能干活**，只是降级为单跑 | 自带 `easyeda update` 自更新，本地改动会被覆盖；且是第三方大件 |
 | `ppt-master` | 汇报 PPT 链（第三方，84 MB / 13,000 文件） | 体量大，建议直接装上游 |
 
 > 它们仍由 `skillman` 统一挂到各客户端（与进仓的 skill 一视同仁），只是**不随本仓发布**；
@@ -150,7 +150,7 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 链路：**AI → `easyeda-api` skill → Bridge Server(49620-49629) → Run API Gateway 扩展 → 嘉立创 EDA 专业版**。
 ⚠️ 扩展**不会自动重连**：EDA 先于桥打开、或桥中途重启时，在 EDA 里重载一次扩展（或重启 EDA）。
 
-### 另一条链路：easyeda-agent（**可选加强**）
+### 另一条链路：easyeda-agent（**与 easyeda-api 配合使用**）
 
 EDA 生态里的 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT）——
 它自带 CLI + daemon + **自己的** EDA 连接器 + **自己的** skill：
@@ -159,11 +159,16 @@ EDA 生态里的 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujia
 AI → 它的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → EDA
 ```
 
+**两条链路分工**：agent = 规程与 typed actions（落图 / 布局 / 布线主力）；api = WebSocket 桥（49620–49629）+ API 参考。
+`硬件/落图` **两个一起装**；只有没装 agent 的机器才降级为 api 单跑。
+
 主打 typed actions（布局规划 `layout-plan`、PCB 布线、丝印整理、PDF 建库等）。
 
 - **怎么装**：CLI 用它的官方 installer（**先下载审阅**，别 `irm | iex`），
   且**必须带 `EASYEDA_INSTALL_SKILLS=none`** —— 否则它会把 skill 写进客户端的 skills 目录，
   与本库 `skillman` 的「逐项挂载」机制打架。skill 单独放进本库目录，由 `skillman` 统一挂各端。
+- **daemon 要常驻**：`easyeda daemon start --auto-update-skill=false`（关掉它的 skill 自动同步——否则会顶掉
+  `skillman` 的接线）+ 登录自启（照 `easyeda-api` 那份**幂等 VBS**：先 `daemon health` 判活再起）。
 - **它是本地层**：走 `.gitignore` 的第三方大件（**不进本仓**）；升级 = 重下 `skills.tar.gz` 覆盖目录。
 - **本机适配不改上游文件**（它自带 `easyeda update`，改了会被覆盖）。
 - 环境要求：EasyEDA Pro **V4**（推荐 V4.1.60+）+ 连接器 `.eext` + 工程开「允许外部交互」。

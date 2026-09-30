@@ -66,8 +66,9 @@ skill 输出与门禁冲突 → **以门禁为准**，并沉淀一条坑册。
 > **④ PCB 是显式占位，不是漏写**：本流程只覆盖到原理图与网表，PCB 布局布线由人工完成。
 > 保留这一行，是为了让你一眼看到「哪些环节 AI 不碰」——空着比占位更容易被误读成"忘了写"。
 >
-> **③ 的 `easyeda-agent` 是可选增强**（本地层第三方大件）：没装也能落图——走 `easyeda-api`
-> 自带的官方规程；缺失时 `doctor` 只警告。逐项见 `ROUTE.md` §2.7 与 `PREREQUISITES.md` §3。
+> **③ 落图链 = `easyeda-agent` + `easyeda-api` 配合使用**（前者规程 / typed actions + 自有连接器，
+> 后者 WebSocket 桥 + API 参考；**两者同时装载**）。agent 属本地层第三方大件：**没装它的机器**
+> 才降级为 api 单跑（`doctor` 只警告）。逐项见 `ROUTE.md` §2.7 与 `PREREQUISITES.md` §3。
 
 ### 2.2 工程线（改已有固件工程 —— 4 步，不碰硬件）
 

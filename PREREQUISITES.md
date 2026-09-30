@@ -24,7 +24,7 @@ python tools/skillman.py doctor
 
 | 缺的 | 影响 | 去哪补 |
 |---|---|---|
-| `easyeda-agent` | 落图 / 布局 / 布线的**加强项**——没它也能落图 | §3.2（可选） |
+| `easyeda-agent` | 与 `easyeda-api` **配合使用**（它出 typed actions，api 出桥与 API 参考）——没它时降级为 api 单跑 | §3.2（可选） |
 | `ppt-master` | 汇报 PPT 链——没它也能写文档 | §3.1（可选） |
 
 **这不是缺陷，是分层**——所以 `doctor` 把它算**警告**不算错误。真正会算**错误**的是
@@ -94,10 +94,14 @@ skill 正文要的是真工具——**缺了不等于不能开工**：
 > **平台机制目录 `shared/`**：Trae CN 平台自带 skill 的公共依赖，本库自研版**不再引用**；
 > 留在 `.gitignore` 名单里只是防误入仓。
 
-### 3.2 `easyeda-agent`（**可选增强**，需另装）
+### 3.2 `easyeda-agent`（**与 `easyeda-api` 配合使用**，需另装）
 
 EDA 生态的 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT，自带 CLI/daemon/连接器）。
-`ROUTE.md` §2 的 `硬件/落图` 行把它列为加强项；**不装也不会让 `doctor` 报错**（本地层缺失=警告）。
+`硬件/落图` 的**正规做法是两个一起装**：agent 出规程与 typed actions，`easyeda-api` 出 WebSocket 桥与 API 参考；
+**只装 api 也能干活**，`doctor` 对此只警告（本地层缺失）。
+
+**daemon 要常驻**：`easyeda daemon start --auto-update-skill=false`（关掉它的 skill 自动同步——否则会顶掉
+你的 skill 接线），再做登录自启（照 `easyeda-api` 那份**幂等 VBS** 的模式：先 `easyeda daemon health` 判活，退 0 就跳过）。
 
 ⚠️ **装它时必带 `EASYEDA_INSTALL_SKILLS=none`**：否则它会把 skill 写进客户端的 skills 目录，
 与 `skillman` 的管理机制**打架**（双头管理）。skill 单独放进本库目录，再用 `skillman install --apply` 挂到各端。
