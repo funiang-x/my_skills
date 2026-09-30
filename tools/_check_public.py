@@ -54,10 +54,10 @@ print(", ".join(tops))
 
 must = ["ROUTE.md", "AGENTS.md", "README.md", "LICENSE", ".gitignore",
         "tools/preflight.py", "tools/skillman.py", "tools/gate.py", "tools/ops.json",
+        "tools/skill_audit.py",
         "hooks/skill_gate.py", "templates/global-door.md", "templates/project-door.md",
         "templates/hook-settings.json",
-        "ponytail/SKILL.md", "easyeda-api/SKILL.md", "easyeda-schematic-net-fanout/SKILL.md",
-        "easyeda-sch-audit-fix/SKILL.md", "easyeda-viewer/SKILL.md",
+        "ponytail/SKILL.md", "easyeda-api/SKILL.md", "easyeda-viewer/SKILL.md",
         "agent-skill-wiring/SKILL.md", "install-github-skill/SKILL.md"]
 missing = [m for m in must if m not in files]
 if missing:

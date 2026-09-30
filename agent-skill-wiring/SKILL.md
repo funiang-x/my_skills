@@ -1,6 +1,7 @@
 ---
 name: agent-skill-wiring
 description: 把新装的 AI 客户端接进统一体系——skill 目录做 Junction/symlink 指向共享库 ~/.ai-skills/，各层补 AGENTS.md / .trae/rules / CLAUDE.md 三扇规则门。当出现「某客户端读不到 skill」「新装了 Trae / Qoder / Codex / 豆包 类工具」「同一个项目各客户端行为不一致」「接线好像断了」时使用。
+agent_created: true
 metadata:
   version: "1.1.0"
   note: "2026-09-30 公开化改写：去本机绝对路径；工作台脚本引用改指本库 tools/skillman.py。"

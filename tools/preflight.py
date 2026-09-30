@@ -11,8 +11,13 @@
     python tools/preflight.py 硬件/落图        # 打印条款 + 发开工证
     python tools/preflight.py --status        # 看当前证是否有效
 
+**可传协议文件 / 证池 / skill 目录**（本工作台之外的宿主用它复用同一实现，见下）：
+    python tools/preflight.py --protocol /path/to/01_任务路由协议.md \
+        --state /path/to/workbench/.state/preflight.json \
+        --skills ~/.ai-skills --noun 操作类型 --ref 01_任务路由协议 硬件/落图
+
 开工证绑定**每个 skill 内容的 sha256** —— 所以**改了 skill 就必须重新走一遍**，旧证自动作废。
-证写在 `.state/preflight.json`（相对本仓库）。协议唯一来源：`ROUTE.md` §2。
+证默认写在 `.state/preflight.json`（相对本仓库）。协议默认唯一来源：`ROUTE.md` §2。
 """
 from pathlib import Path
 import sys
@@ -23,8 +28,32 @@ except Exception:                                               # noqa: BLE001
     pass
 
 REPO = Path(__file__).resolve().parent.parent        # 仓库根（skill 就在根级）
-PROTOCOL = REPO / "ROUTE.md"
-STATE = REPO / ".state" / "preflight.json"
+
+
+def _split_args() -> tuple:
+    """→ (位置参数, 选项字典)。选项形如 `--k v`；后面没跟值的算开关（如 `--status`）。"""
+    pos, opts, i = [], {}, 1
+    while i < len(sys.argv):
+        a = sys.argv[i]
+        if a.startswith("--"):
+            if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith("--"):
+                opts[a[2:]] = sys.argv[i + 1]
+                i += 2
+            else:
+                opts[a[2:]] = True
+                i += 1
+            continue
+        pos.append(a)
+        i += 1
+    return pos, opts
+
+
+ARGS, OPT = _split_args()
+PROTOCOL = Path(OPT.get("protocol", REPO / "ROUTE.md")).resolve()
+SKILLS = Path(OPT.get("skills", REPO)).resolve()
+STATE = Path(OPT.get("state", REPO / ".state" / "preflight.json")).resolve()
+NOUN = OPT.get("noun", "任务类型")                   # 打印措辞（工作台说"操作类型"）
+REF = OPT.get("ref", PROTOCOL.stem)                  # [ROUTE] 声明里的「依据=」
 TTL_HOURS = 8
 
 import hashlib                                                  # noqa: E402
@@ -34,13 +63,13 @@ import time                                                     # noqa: E402
 
 
 def parse_ops():
-    """从 `ROUTE.md` §2 装配表解析「任务类型 → 必载 skill / 必读」。
+    """从协议文件的 §2 装配表解析「任务类型 → 必载 skill / 必读」。
 
     不另建一份清单（单点真相）：协议表就是唯一来源。
     skill 名靠"目录里有 SKILL.md"来识别，顺带滤掉 `tools/`、`templates/` 之类。
     """
     text = PROTOCOL.read_text(encoding="utf-8")
-    disk = {d.name for d in REPO.iterdir()
+    disk = {d.name for d in SKILLS.iterdir()
             if d.is_dir() and (d / "SKILL.md").is_file()}
     ops = {}
     for line in text.splitlines():
@@ -67,7 +96,7 @@ def parse_ops():
 
 def skill_block(name):
     """返回 (skill 的 sha256, 开工前置块原文, 章节标题列表)。"""
-    p = REPO / name / "SKILL.md"
+    p = SKILLS / name / "SKILL.md"
     if not p.exists():
         return "", "", []
     raw = p.read_bytes()
@@ -90,11 +119,10 @@ def skill_block(name):
 
 def main():
     ops = parse_ops()
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
 
-    if "--status" in sys.argv:
+    if OPT.get("status"):
         if not STATE.exists():
-            print("开工证：**无**。开工前跑 `python tools/preflight.py <任务类型>`。")
+            print("开工证：**无**。开工前跑 `python tools/preflight.py <%s>`。" % NOUN)
             return 1
         pool = json.loads(STATE.read_text(encoding="utf-8")).get("tokens", [])
         if not pool:
@@ -104,33 +132,33 @@ def main():
         for d in pool:
             age = (now - d.get("ts", 0)) / 3600
             good = age <= TTL_HOURS and all(
-                hashlib.sha256((REPO / n / "SKILL.md").read_bytes()).hexdigest() == h
+                hashlib.sha256((SKILLS / n / "SKILL.md").read_bytes()).hexdigest() == h
                 for n, h in (d.get("skills") or {}).items()
-                if (REPO / n / "SKILL.md").exists())
+                if (SKILLS / n / "SKILL.md").exists())
             print("开工证：%-12s ｜ 任务=%-16s ｜ %.1f 小时前 ｜ %s"
                   % (d.get("token"), d.get("op"), age,
                      "有效" if good else "**已失效**（超时或 skill 已改）"))
         return 0
 
-    if not args:
-        print("可用的任务类型（来自 `ROUTE.md` §2，共 %d 个）：\n" % len(ops))
+    if not ARGS:
+        print("可用的%s（来自 `%s` §2，共 %d 个）：\n" % (NOUN, PROTOCOL.name, len(ops)))
         for op, v in ops.items():
             print("  %-20s skill=%-38s %s"
                   % (op, ",".join(v["skills"]) or "无", v["trigger"][:42]))
-        print("\n用法： python tools/preflight.py <任务类型>")
+        print("\n用法： python tools/preflight.py <%s>" % NOUN)
         print("（不带证去做改动动作，会被 PreToolUse 钩子拦下；钩子装法见 templates/hook-settings.json）")
         return 0
 
-    op = args[0]
+    op = ARGS[0]
     if op not in ops:
-        print("⛔ 没有这个任务类型：%s\n\n可用：\n" % op)
+        print("⛔ 没有这个%s：%s\n\n可用：\n" % (NOUN, op))
         for k in ops:
             print("   ", k)
         return 2
 
     v = ops[op]
     print("=" * 78)
-    print("开工前置 ｜ 任务类型：%s" % op)
+    print("开工前置 ｜ %s：%s" % (NOUN, op))
     print("触发特征：%s" % v["trigger"])
     print("必载 skill：%s" % (", ".join(v["skills"]) or "无（本类型无 skill）"))
     print("必读：%s" % v["docs"])
@@ -140,7 +168,8 @@ def main():
     for name in v["skills"]:
         sha, top, heads = skill_block(name)
         if not sha:
-            print("\n⚠️ skill `%s` 读不到（目录/文件缺失）——按 ROUTE.md §2 修表。" % name)
+            print("\n⚠️ skill `%s` 读不到（目录/文件缺失）——按 `%s` §2 修表。"
+                  % (name, PROTOCOL.name))
             continue
         shas[name] = sha
         print("\n" + "─" * 78)
@@ -162,11 +191,11 @@ def main():
         (op + "|" + "|".join(sorted(shas.values())) + "|" + time.strftime("%Y-%m-%d"))
         .encode("utf-8")).hexdigest()[:12]
     print()
-    print("[ROUTE] 类型=%s | skill=%s | 参考=%s | 证=%s | 依据=ROUTE.md"
-          % (op, ",".join(shas) or "无", v["docs"][:40], tok))
+    print("[ROUTE] 类型=%s | skill=%s | 参考=%s | 证=%s | 依据=%s"
+          % (op, ",".join(shas) or "无", v["docs"][:40], tok, REF))
     print()
-    print("  （证已写入 `.state/preflight.json`，%d 小时内有效；"
-          "**skill 内容一改，证自动作废**，需重跑本命令）" % TTL_HOURS)
+    print("  （证已写入 `%s`，%d 小时内有效；"
+          "**skill 内容一改，证自动作废**，需重跑本命令）" % (STATE, TTL_HOURS))
     print("=" * 78)
 
     # 多张证并存（各带自己的 TTL），切任务不必来回重跑；同任务类型覆盖旧的

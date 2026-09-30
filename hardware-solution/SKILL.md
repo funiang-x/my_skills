@@ -1,6 +1,7 @@
 ---
 name: hardware-solution
 description: "Use when the user needs embedded hardware architecture, MCU/SoC selection, power tree design, interface planning, sensor/actuator selection, RF/connectivity, BOM risk assessment, PCB/layout constraints, schematic-ready proposals, validation plans, or hardware design review."
+agent_created: true
 ---
 
 # Hardware Solution

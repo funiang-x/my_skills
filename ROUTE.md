@@ -38,9 +38,9 @@
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
 | `硬件/选型` | 选 MCU/器件、电源树、接口规划、BOM 风险、方案对比 | `hardware-solution` | skill 正文 |
-| `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | **`easyeda-schematic-net-fanout`（强制，无例外）** + `easyeda-api`——第一个动作就装载它并按其规程执行，不许自己现写脚本重新发明流程 | skill 正文 + `references/` |
+| `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | **`easyeda-agent`（强制，无例外）** + `easyeda-api`——第一个动作就装载它并按其规程执行，不许自己现写脚本重新发明流程 | skill 正文 + `references/` |
 | `硬件/看图` | 离线看原理图/PCB、落图视觉复核、给图纸做离线快照 | `easyeda-viewer` | skill 正文 |
-| `硬件/审计` | 原理图查错、换料、标位号、端口修补、DRC | `easyeda-sch-audit-fix` | skill 正文 |
+| `硬件/审计` | 原理图查错、换料、标位号、端口修补、DRC | `easyeda-api` | skill 正文 |
 | `硬件/生产` | 打样检查、Gerber/BOM 导出、下单前核对 | `easyeda-api` | skill 正文 |
 
 ### 2.2 软件类
@@ -65,11 +65,14 @@
 |---|---|---|---|
 | `通用/设计与代码质量` | 设计或改进模块接口、想在写代码前先跑测试 | `codebase-design`（深模块词汇）· `tdd` | skill 正文；写代码时 `ponytail` 仍然强制 |
 | `通用/调试` | 通用 bug 诊断循环（复现 → 收紧 → 定位） | `diagnosing-bugs`（与 `stm32-hang-triage` 互补：那个管 MCU 崩溃取证） | skill 正文 |
-| `通用/规格与协作` | 用文档拷问方案、解 git 合并/变基冲突 | `grill-with-docs` · `resolving-merge-conflicts` | skill 正文 |
+| `通用/规格与协作` | 解 git 合并 / 变基冲突 | `resolving-merge-conflicts` | skill 正文 |
 | `通用/访谈与文档` | 拷问/访谈需求与设计（非代码向）、会话交接、写 agent 文档（skill / AGENTS.md） | `grilling`（访谈原语）· `grill-me` · `handoff` · `writing-for-agents` | skill 正文 |
 
-> **触发方式提醒**：`grill-with-docs` / `grill-me` / `handoff` 带 `disable-model-invocation: true`
+> **触发方式提醒**：`grill-me` / `handoff` 带 `disable-model-invocation: true`
 > ——**不会自动触发，需用户点名**。本表更像是"你知道有这些可用"，而不是"agent 会自动命中"。
+>
+> 2026-09-30 退库：`grill-with-docs` —— 它的差异化能力（调 `domain-modeling` 补 ADR/glossary）
+> 已随该 skill 退库消失，正文与 `grill-me` 等价，属纯冗余。方案拷问仍走 `grilling`。
 
 ### 2.5 本地扩展（可选）
 
@@ -78,8 +81,12 @@
 然后在本地增量表里给 `文档/汇报PPT` 类型挂上它。
 
 另一类例（**平行工具链**）：[easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)
-是 EDA 侧的另一条独立链路（自带 CLI/daemon/连接器/skill），与本库 `easyeda-*` 互补、可共存；
-要用它就把它的 skill 挂到你自己的增量表（**不要**装进本仓）。
+是 EDA 侧的另一条独立链路（自带 CLI/daemon/连接器/skill）。
+**2026-09-30 起本机已采用它**：装的是**本地层**（`.gitignore` 的第三方大件，不进本仓），
+skill 目录 `~/.ai-skills/easyeda-agent/`（由 `skillman` 统一挂 10 端，**不是**它的 installer 管的
+——装 CLI 时用 `EASYEDA_INSTALL_SKILLS=none` 避免双头管理）。
+本机适配与机器事实写在宿主工作台（`workbench/machine.md` §3.1），**不改上游文件**
+（它自带 `easyeda update`，本地改动会被覆盖）。
 
 ## 3. 路由声明（固定格式，贴在回复开头）
 

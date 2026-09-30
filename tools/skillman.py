@@ -127,6 +127,31 @@ def make_link(link: Path, target: Path) -> bool:
         return False
 
 
+def stale_links(sd: Path, names) -> list:
+    """端目录里「指向本库、但本库已无该目录」的链接名 —— 退库后没清的悬空 Junction。
+
+    只认这一类：指向别处的链接、以 `.` 开头的客户端机制目录（`.system` / `.default`）、
+    以及实体目录一律不碰。本库基础设施（tools/hooks/templates/.state）没有 SKILL.md，
+    本就不在 `names` 里，不会被误判。
+    """
+    out = []
+    if not sd.is_dir():
+        return out
+    for child in sorted(sd.iterdir()):
+        if child.name in names or child.name.startswith("."):
+            continue
+        t = link_target(child)
+        if t is None:
+            continue
+        try:
+            tp = Path(t)
+            if tp.parent.resolve() == REPO.resolve() and not tp.exists():
+                out.append(child.name)
+        except OSError:
+            continue
+    return out
+
+
 def door_text() -> str:
     r = REPO.as_posix()
     return (MARK_BEGIN + "\n"
@@ -213,19 +238,35 @@ def plan_client(name, skills_dir, how, probe_dir, apply):
             wrong.append(n)
         else:
             miss.append(n)
-    if apply and (miss or wrong):
+    # 残留 = 端目录里「指向本库、但本库已无该目录」的链接（退库后没清）。
+    stale = stale_links(sd, names)
+    if apply and (miss or wrong or stale):
         sd.mkdir(parents=True, exist_ok=True)
         done = 0
         for n in miss:
             if make_link(sd / n, REPO / n):
                 done += 1
-        return ("ok" if not wrong else "warn"), \
-            "逐项：补挂 %d / 共 %d；%s" % (done, len(names),
-                                          ("异常 %d 项：%s" % (len(wrong), ",".join(wrong[:3])))
-                                          if wrong else "全部正确")
-    if not miss and not wrong:
+        cut = 0
+        for n in stale:
+            try:
+                os.rmdir(str(sd / n))        # 删 Junction 只摘链接，不动目标
+                cut += 1
+            except OSError:
+                pass
+        bits = ["补挂 %d / 共 %d" % (done, len(names))]
+        if stale:
+            bits.append("清残留 %d / %d" % (cut, len(stale)))
+        if wrong:
+            bits.append("异常 %d 项：%s" % (len(wrong), ",".join(wrong[:3])))
+        return ("ok" if not wrong else "warn"), "逐项：" + "；".join(bits)
+    if not miss and not wrong and not stale:
         return "ok", "逐项：全部正确（%d 项）" % len(names)
-    return "plan", "逐项：缺 %d 项%s" % (len(miss), ("、异常 %d 项" % len(wrong)) if wrong else "")
+    parts = ["缺 %d 项" % len(miss)] if miss else []
+    if stale:
+        parts.append("残留 %d 项待清（%s）" % (len(stale), ",".join(stale[:4])))
+    if wrong:
+        parts.append("异常 %d 项" % len(wrong))
+    return "plan", "逐项：" + "、".join(parts)
 
 
 def cmd_install(apply: bool):
@@ -355,9 +396,12 @@ def cmd_doctor():
                 print("  ✗ %-13s 指向别处" % name)
         else:
             probe = sdp / PROBE / "SKILL.md"
+            st = stale_links(sdp, skills)
+            if st:
+                warns.append("%s 有 %d 个悬空接线：%s" % (name, len(st), ",".join(st[:4])))
             if probe.exists():
                 oks.append(name)
-                print("  ✓ %-13s 探针穿透" % name)
+                print("  ✓ %-13s 探针穿透%s" % (name, "（✂ 残留 %d 待清）" % len(st) if st else ""))
             else:
                 warns.append("%s 探针不通（缺 %s）" % (name, disp(probe)))
                 print("  ✗ %-13s 探针不通" % name)

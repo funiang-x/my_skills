@@ -34,7 +34,7 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 | 链路 | skill |
 |---|---|
 | 硬件选型 | `hardware-solution`（架构 / 电源树 / 器件 / BOM 风险） |
-| 原理图（嘉立创 EDA） | `easyeda-schematic-net-fanout`（落图规程）· `easyeda-api`（桥 + API）· `easyeda-viewer`（离线看图）· `easyeda-sch-audit-fix`（审计修补） |
+| 原理图（嘉立创 EDA） | `easyeda-api`（桥 + API）· `easyeda-viewer`（离线看图）· **easyeda-agent**（落图 / 布局 / 布线的 CLI 化规程 —— 本地层，不进本仓） |
 | 固件（STM32 + J-Link） | `stm32-hal-cli-flow`（构建/烧录/RTT CLI）· `stm32-hang-triage`（崩溃取证） |
 | 工程方法 | `ponytail`（+`-audit`/`-review`，反过度工程）· `tdd` · `codebase-design` · `diagnosing-bugs` · `grilling` 系（需求拷问）· `handoff` · `writing-for-agents` · `resolving-merge-conflicts` |
 | 环境管理 | `install-github-skill`（装技能规程）· `agent-skill-wiring`（跨客户端接线） |
@@ -50,21 +50,23 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 链路：**AI → `easyeda-api` skill → Bridge Server(49620-49629) → Run API Gateway 扩展 → 嘉立创 EDA 专业版**。
 ⚠️ 扩展**不会自动重连**：EDA 先于桥打开、或桥中途重启时，在 EDA 里重载一次扩展（或重启 EDA）。
 
-### 可选的另一条链路：easyeda-agent
+### 另一条链路：easyeda-agent（2026-09-30 起本机已采用）
 
-EDA 生态里还有 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT，569★）——
-它自带 CLI + daemon + **自己的** EDA 连接器 + **自己的** skill，走**平行的另一条链路**：
+EDA 生态里的 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT）——
+它自带 CLI + daemon + **自己的** EDA 连接器 + **自己的** skill：
 
 ```
-AI → 它自己的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → EDA
+AI → 它的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → EDA
 ```
 
-主打 typed actions（布局规划 `layout-plan`、PCB 布线、丝印整理、PDF 建库等），与本库 `easyeda-*`
-四件套**互补、可共存**（EDA 里两个连接器各跑各的，互不冲突）。
+主打 typed actions（布局规划 `layout-plan`、PCB 布线、丝印整理、PDF 建库等）。
 
-- 它**不属于本库**：它的 skill 由它自己的 installer 管理，**不要**装进本库（双头管理会打架）；
-- 要用它：跑它的 installer（⚠️ 管道执行远程脚本前先**下载审阅**）→ `easyeda daemon start` → `easyeda health`；
-- 环境要求：EasyEDA Pro **V4**（推荐 V4.1.60+）。
+- **本机怎么装的**：CLI 用它的官方 installer（**先下载审阅**，别 `irm | iex`），
+  且**必须带 `EASYEDA_INSTALL_SKILLS=none`** —— 否则它会把 skill 写进 `~/.codex/skills/easyeda-agent`，
+  而那是宿主工作台 `skillman` 管的「逐项挂载」端，会打架。skill 单独放进 `~/.ai-skills/` 由 `skillman` 统一挂 10 端。
+- **它是本地层**：走 `.gitignore` 的第三方大件（**不进本仓**）；升级 = 重下 `skills.tar.gz` 覆盖目录。
+- **本机适配不改上游文件**（它自带 `easyeda update`，改了会被覆盖）；机器事实与适配写在工作台 `workbench/machine.md` §3.1。
+- 环境要求：EasyEDA Pro **V4**（推荐 V4.1.60+）+ 连接器 `.eext` + 工程开「允许外部交互」。
 
 ## 三条命令
 
@@ -81,9 +83,12 @@ AI → 它自己的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) 
 
 ## 第三方与来源（致谢）
 
-- `easyeda-*` 四件套：[easyeda/easyeda-api-skill](https://github.com/easyeda/easyeda-api-skill) · [easyeda/easyeda-enhanced-schematic-skill](https://github.com/easyeda/easyeda-enhanced-schematic-skill) · [easyeda/easyeda-viewer](https://github.com/easyeda/easyeda-viewer)（嘉立创 EDA 官方，MIT）
+- `easyeda-*` 两件套：[easyeda/easyeda-api-skill](https://github.com/easyeda/easyeda-api-skill) · [easyeda/easyeda-viewer](https://github.com/easyeda/easyeda-viewer)（嘉立创 EDA 官方，MIT）。
+  2026-09-30 退役 `easyeda-schematic-net-fanout`（上游官方版只有 3 个 md、最后提交 2026-07-31）与自研 `easyeda-sch-audit-fix`，
+  落图规程改用下一条。
+- `easyeda-agent`（本地层，不进本仓）：[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT）
 - `ponytail` 系：[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)（MIT，本库版有平台适配小改）
-- 方法层（`tdd` / `codebase-design` / `grilling` / `grill-me` / `grill-with-docs` / `handoff` / `writing-for-agents` / `diagnosing-bugs` / `resolving-merge-conflicts`）：[mattpocock/skills](https://github.com/mattpocock/skills)（MIT）
+- 方法层（`tdd` / `codebase-design` / `grilling` / `grill-me` / `handoff` / `writing-for-agents` / `diagnosing-bugs` / `resolving-merge-conflicts`）：[mattpocock/skills](https://github.com/mattpocock/skills)（MIT）
 - 汇报 PPT 链：推荐直接安装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)（本库不含）
 
 ## 维护

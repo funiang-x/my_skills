@@ -21,6 +21,11 @@
 # 第三方大件（84 MB / 13,000 文件；推荐直接安装上游，见 README）
 /ppt-master/
 
+# 第三方大件：easyeda-agent 的 skill（2.7 MB / 201 文件；MIT，zhoushoujianwork）
+# 它自带 `easyeda update` 自更新，**本地改动会被覆盖** ⇒ 本机适配只写进工作台
+# （workbench/machine.md §3.1），不落进本目录；升级 = 重下 skills.tar.gz 覆盖本目录。
+/easyeda-agent/
+
 # 实战台账与内部留证（含真实项目现场细节，只留本机）
 **/LESSONS.md
 **/PATCHES.diff

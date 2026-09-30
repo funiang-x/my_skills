@@ -60,6 +60,22 @@ mkdir -p "$DEST/agents" && cp "$SRC/agents/"*.md "$DEST/agents/"   # 仓库根�
 
 **不要运行上游的 `install.sh`** —— 它们通常写 `~/.claude`、`~/.codex`，碰其他客户端的配置。手工复制更干净。
 
+### 例外：目标不是「纯 skill 仓」而是「CLI + installer + 自带 skill」的产品
+
+有些项目（例：`easyeda-agent`）本体是 **CLI + daemon + 连接器**，skill 只是附赠，
+installer 是装 CLI 的**唯一正规途径**——这时**不能**照上面"手工复制"办，但也不能裸跑 installer：
+
+| 坑 | 后果 | 对策 |
+|---|---|---|
+| installer 默认把 skill 写进 `~/.codex/skills`、`~/.claude/skills`、`~/.agents/skills` | 若那些目录是宿主共享库的 **Junction/逐项挂载端** → **双头管理打架**（`skillman` 以为是自己管的） | **查它有没有"跳过 skill"开关**（`EASYEDA_INSTALL_SKILLS=none` 这类）→ 装上，**只装 CLI** |
+| 默认走第三方镜像（如 `gh-proxy.com`） | 信任边界外移 | 查有没有关镜像的开关（`EASYEDA_GITHUB_PROXY=off`） |
+| 未检测到客户端时**默认创建** `~/.codex` / `~/.claude` 空目录 | 污染家目录 | 同上，用跳过开关 |
+| 它自带 `update` 子命令（如 `easyeda update`） | **本地改动会被覆盖** → 你的适配全丢 | **一个字都别改上游文件**；适配写进宿主工作台（`machine.md` / `LOCAL.md`）；升级 = 重下它的 skill 包覆盖 |
+| 它自己的 skill 目标目录 ≠ 你的共享库 | 不冲突，但 10 端看不到 | 从 Release 下它的 skill 包（`skills.tar.gz` 之类）→ 校验 sha256 → 解出放进 `~/.ai-skills/<name>/` → `skillman install --apply` |
+
+**统一姿势**：`installer 只装 CLI（带跳过开关）` → `手工把 skill 放进共享库` → `skillman 挂 10 端` → `登记路由` → `本机适配写进工作台`。
+**别忘了划层**：这类第三方大件通常该进 `.gitignore` 的**本地层**（不进公开仓），与 `ppt-master` 同档。
+
 装完按 `ROUTE.md` §2.3「环境/改技能」收口：定任务类型 → `python tools/skillman.py install --apply`
 补挂逐项端 → 登记路由 → `python tools/skillman.py doctor` 退出码 0。
 

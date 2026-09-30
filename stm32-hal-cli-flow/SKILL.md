@@ -1,6 +1,7 @@
 ---
 name: "stm32-hal-cli-flow"
 description: "STM32 HAL 四层工程（Task / Operation / Device / Common，自研 Tools/fw.py + CMakePresets + J-Link + SEGGER RTT + CubeMX 生成链）的构建 / 烧录 / RTT 日志 / 固件体积 / PC 单元测试 / 闭环验证 CLI 流程。触发条件：工程根同时存在 Tools/fw.py 与 CMakePresets.json，且用户要求编译、构建、烧录、下载、看日志、查体积、跑单测、闭环验证、清理 build/、搬运 CubeMX 生成物、加外设骨架。本 skill 会明确阻止误用 st-flash / STM32_Programmer_CLI / openocd / ST-Link 等外部工具链。"
+agent_created: true
 ---
 
 # 本模板系工程的 CLI 工作流

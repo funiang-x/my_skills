@@ -25,11 +25,15 @@
 设计取舍：
   · **找不到本库就放行**（fail-open）—— skill 是可移植资产，不能因为离开本库就跑不动。
   · **只拦"写"类动作**；只读脚本（如 `audit_sch.py`）不接闸门——读不需要许可。
-  · 证与钩子层共用同一份 `.state/preflight.json`，两边结论永远一致。
+  · 证池**并集**语义（本库池 + 宿主工作台池，见 `state_files()`）—— 一份实现同时服务
+    两种宿主布局，证与钩子层结论永远一致。
+  · **实现只有这一份**（2026-09-30 收口）：外面的工作台（如 `Project/workbench/tools/gate.py`）
+    已改为薄转发到本文件；此前两边各一份，改一处忘一处、两个证池互不承认。
 """
 from pathlib import Path
 import hashlib
 import json
+import os
 import sys
 import time
 
@@ -40,15 +44,67 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 REPO = Path(__file__).resolve().parent.parent
-STATE = REPO / ".state" / "preflight.json"
 TTL_HOURS = 8
 
 
+def state_files() -> list:
+    """证池候选 —— **并集语义**：任一张有效证放行。
+
+    为什么不写死一个池：本闸门同时服务两种宿主布局 ——
+      · 本库自身（`REPO/.state/preflight.json`）
+      · 外面的工作台（如 `Project/workbench/.state/preflight.json`）
+    skill 脚本的 gate 探测是「先 CWD 向上找 `workbench/tools`、再找本库 `tools`」，
+    所以**同一份 gate.py 会在两种布局下被加载**。写死一个池，另一种布局就拿不到证，
+    闸门会静默变成"永远拦"或"永远放行"。
+
+    优先级：环境变量 `SKILL_GATE_STATE`（`os.pathsep` 分隔）→ CWD 向上 8 层
+    （`<d>/workbench/.state/` 与 `<d>/.state/`）→ 本库池。
+    """
+    out = []
+    for p in (os.environ.get("SKILL_GATE_STATE") or "").split(os.pathsep):
+        if p.strip():
+            out.append(Path(p.strip()))
+    d = Path.cwd().resolve()
+    for _ in range(8):
+        out.append(d / "workbench" / ".state" / "preflight.json")
+        out.append(d / ".state" / "preflight.json")
+        if d.parent == d:
+            break
+        d = d.parent
+    out.append(REPO / ".state" / "preflight.json")
+    seen, uniq = set(), []
+    for p in out:
+        try:
+            rp = str(p.resolve()).lower()
+        except OSError:
+            rp = str(p).lower()
+        if rp not in seen:
+            seen.add(rp)
+            uniq.append(p)
+    return uniq
+
+
 def _tokens():
-    try:
-        return json.loads(STATE.read_text(encoding="utf-8")).get("tokens", [])
-    except Exception:                                            # noqa: BLE001
-        return []
+    """把**所有存在的**证池合起来（各自记来源，便于报错时说清是哪一池）。"""
+    pool = []
+    for p in state_files():
+        try:
+            for t in json.loads(p.read_text(encoding="utf-8")).get("tokens", []):
+                t = dict(t)
+                t["_pool"] = str(p)
+                pool.append(t)
+        except Exception:                                        # noqa: BLE001
+            continue
+    return pool
+
+
+def _hint(op) -> str:
+    """报错时给出的 preflight 命令 —— 按实际存在的宿主来指，别指到不存在的路径。"""
+    for p in state_files():
+        host = p.parent.parent                  # …/workbench （或 … 当 p = <d>/.state/…）
+        if (host / "tools" / "preflight.py").is_file():
+            return "python %s/tools/preflight.py %s" % (host.as_posix(), op)
+    return "python %s/tools/preflight.py %s" % (REPO.as_posix(), op)
 
 
 def check(ops):
@@ -87,9 +143,7 @@ def require(ops):
         "   请现在执行（任选其一，按你要做的事）：\n%s\n"
         "   它会把这个操作**该读的 skill 条款正文打印出来**，并签发开工证。\n"
         "   读完条款再重跑本脚本（证 8 小时有效；skill 内容一改即作废）。\n\n"
-        % (got, " / ".join(ops),
-           "\n".join("     python %s/tools/preflight.py %s" % (REPO.as_posix(), o)
-                     for o in ops)))
+        % (got, " / ".join(ops), "\n".join("     " + _hint(o) for o in ops)))
     raise SystemExit(3)
 
 
