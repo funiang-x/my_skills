@@ -82,8 +82,13 @@ def parse_ops():
         if not m or m.group(1) in ("类型",) or set(cells[0]) <= set("-: "):
             continue
         op = m.group(1)
+        # **按名字形状过滤，不按磁盘过滤**（2026-09-30 修）：
+        # 原先这里是 `if s in disk` —— 于是"引用了但没装"的名字被解析层吃掉，
+        # 调用方（`skillman doctor` 的"路由引用了不存在的 skill"）永远拿到空 missing，
+        # **那道检查成了死代码**。实测：新机 clone 后 doctor 报"全部存在"，其实缺 3 个。
+        # 形状过滤仍能滤掉 `Tools/fw.py` / `CMakePresets.json` / `references/usage.md` 这类噪声。
         skills = [s for s in re.findall(r"`([^`]+)`", cells[2] if len(cells) > 3 else "")
-                  if s in disk]
+                  if re.fullmatch(r"[a-z][a-z0-9_-]*", s)]
         seen, uniq = set(), []
         for s in skills:
             if s not in seen:
@@ -168,8 +173,9 @@ def main():
     for name in v["skills"]:
         sha, top, heads = skill_block(name)
         if not sha:
-            print("\n⚠️ skill `%s` 读不到（目录/文件缺失）——按 `%s` §2 修表。"
-                  % (name, PROTOCOL.name))
+            print("\n⚠️ skill `%s` **未安装**（目录/文件缺失）。" % name)
+            print("   常见原因：它是**本地层 skill**（不随本仓发布）→ 见 `PREREQUISITES.md` §3；"
+                  "若确已废弃，则按 `%s` §2 修表。" % PROTOCOL.name)
             continue
         shas[name] = sha
         print("\n" + "─" * 78)

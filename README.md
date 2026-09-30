@@ -12,7 +12,7 @@
 |---|---|---|
 | **skill** | 目录里有 `SKILL.md` | 下面那张表的 **17 个** |
 | **库基础设施** | 目录里**没有** `SKILL.md` | `hooks/`（硬闸门）· `templates/`（门模板）· `tools/`（管理工具） |
-| **根文件** | — | `ROUTE.md`（用哪个 skill）· `WORKFLOW.md`（按什么阶段做）· `AGENTS.md`（agent 入口）· `README.md` · `LICENSE` · `.gitignore` |
+| **根文件** | — | `ROUTE.md`（用哪个 skill）· `WORKFLOW.md`（按什么阶段做）· **`PREREQUISITES.md`（要跑起来还差什么）** · `AGENTS.md`（agent 入口）· `README.md` · `LICENSE` · `.gitignore` |
 
 > **为什么 17 个 skill 平铺在根目录、不能分文件夹？**
 > skill 发现机制要求 `<skills目录>/<名字>/SKILL.md` —— **只有一层**。
@@ -68,6 +68,11 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 装好后，在任意支持 skill 的 AI 客户端里正常干活即可——AI 会按 `ROUTE.md`
 的装配清单路由到对应 skill，并在动手前输出 `[ROUTE]` 声明给你看。
 
+> ⚠️ **本仓是「骨架」，不是「全套」。** 上面三步只装**公开层（17 个 skill）**；
+> 要真正跑起来还需要**本地层 8 个 skill**、**工具链**、以及 **EDA 侧 GUI 前置**——
+> 逐项清单见 **[`PREREQUISITES.md`](PREREQUISITES.md)**（**先读那份再动手**）。
+> 不装 `easyeda-agent` 的话，`doctor` 会报 `路由引用了不存在的 skill`。
+
 ## AI 为什么"自动"用对 skill（触发链）
 
 1. **全局门**（`install` 时写入各客户端）：用户级规则里一小段指针——「开工先读 `ROUTE.md`」
@@ -85,8 +90,9 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 
 | 目录 | 是什么 | 为什么不在仓里 |
 |---|---|---|
-| `easyeda-agent` | 落图 / 布局 / 布线的 **CLI 化规程**（第三方，MIT）—— 本机已采用，替代了原自研的 `easyeda-*` 落图件 | 自带 `easyeda update` 自更新，本地改动会被覆盖；且是第三方大件 |
+| `easyeda-agent` | 落图 / 布局 / 布线的 **CLI 化规程**（第三方，MIT）—— 本机已采用，替代了原自研的 `easyeda-*` 落图件。**⚠️ 需另装**：`ROUTE.md` §2 的 `硬件/落图` 行点名了它，不装则 `doctor` 报错 → 装法见 `PREREQUISITES.md` §3.2 | 自带 `easyeda update` 自更新，本地改动会被覆盖；且是第三方大件 |
 | `ppt-master` | 汇报 PPT 链（第三方，84 MB / 13,000 文件） | 体量大，建议直接装上游 |
+| Trae CN 系 6 个 | `build-cmake` · `debug-jlink` · `flash-jlink` · `serial-monitor` · `serial-shell` · `static-analysis` | 平台自带，版权归属不明；**非 Trae 用户拿不到** |
 
 > 它们仍由 `skillman` 统一挂到各客户端（与进仓的 skill 一视同仁），只是**不随本仓发布**。
 > 详见本机工作台的 `workbench/machine.md` §3.1。

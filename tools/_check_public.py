@@ -52,7 +52,8 @@ tops = sorted({f.split("/")[0] for f in files})
 print("\n顶层条目（%d）：" % len(tops))
 print(", ".join(tops))
 
-must = ["ROUTE.md", "WORKFLOW.md", "AGENTS.md", "README.md", "LICENSE", ".gitignore",
+must = ["ROUTE.md", "WORKFLOW.md", "PREREQUISITES.md", "AGENTS.md", "README.md",
+        "LICENSE", ".gitignore",
         "tools/preflight.py", "tools/skillman.py", "tools/gate.py", "tools/ops.json",
         "tools/skill_audit.py",
         "hooks/skill_gate.py", "templates/global-door.md", "templates/project-door.md",

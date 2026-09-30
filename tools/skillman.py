@@ -394,8 +394,8 @@ def cmd_doctor():
 
     # 1. 本库完整性
     print("[1/5] 本库完整性")
-    required = ["ROUTE.md", "WORKFLOW.md", "AGENTS.md", "README.md", "tools/preflight.py",
-                "hooks/skill_gate.py", "tools/ops.json"]
+    required = ["ROUTE.md", "WORKFLOW.md", "PREREQUISITES.md", "AGENTS.md", "README.md",
+                "tools/preflight.py", "hooks/skill_gate.py", "tools/ops.json"]
     for rel in required:
         if (REPO / rel).exists():
             oks.append(rel)
@@ -460,10 +460,23 @@ def cmd_doctor():
         ops = _pf.parse_ops()
         referenced = sorted({s for v in ops.values() for s in v["skills"]})
         missing = [s for s in referenced if s not in skills]
-        if missing:
-            errors.append("路由引用了不存在的 skill：%s" % ",".join(missing))
-            print("  ✗ 引用了不存在的 skill：%s" % ",".join(missing))
-        else:
+        # **区分「公开层缺」与「本地层缺」**（2026-09-30）：
+        # 本地层 skill **本来就不随本仓发布**（见 `.gitignore` 与 PREREQUISITES.md §3），
+        # 新机 clone 后缺它们是**已知状态，不是缺陷** ⇒ 只警告，不算错误。
+        # 只有**公开层**的 skill 被引用却不在，才是真问题（表写错了，或仓不完整）。
+        _gi = REPO / ".gitignore"
+        _local = set(re.findall(r"^/([A-Za-z0-9_.-]+)/$",
+                                _gi.read_text(encoding="utf-8"), re.M)) if _gi.is_file() else set()
+        _hard = [s for s in missing if s not in _local]
+        _soft = [s for s in missing if s in _local]
+        if _hard:
+            errors.append("路由引用了不存在的**公开层** skill：%s" % ",".join(_hard))
+            print("  ✗ 引用了不存在的**公开层** skill：%s" % ",".join(_hard))
+        if _soft:
+            warns.append("本地层 skill 未装：%s" % ",".join(_soft))
+            print("  ⚠ 本地层 skill 未装（不随本仓发布，属已知状态）：%s" % ",".join(_soft))
+            print("    → 逐项清单与装法见 PREREQUISITES.md §3")
+        if not missing:
             print("  ✓ 表内引用的 skill 全部存在（%d 个任务类型 / %d 个 skill）"
                   % (len(ops), len(referenced)))
         route_text = (REPO / "ROUTE.md").read_text(encoding="utf-8")
