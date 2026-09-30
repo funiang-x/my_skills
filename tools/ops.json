@@ -5,6 +5,13 @@
     "同一动作命中多个 zone 时取并集：任一张属于任一命中 zone 允许的类型的证都放行。",
     "exempt 里的路径永不拦（.state 要放行——preflight 自己就写在那里）。"
   ],
+  "_judging": [
+    "判据（2026-09-30 重构批次 1）：命中 = (argv[0] ∈ executables) OR (目标路径 ∈ paths)。",
+    "命令按 | && || ; 换行**拆段**（引号内不拆），每段取 argv[0]；argv[0] 是解释器（python/node/bash…）时取其后第一个非开关参数。",
+    "于是 `grep -oE 'a|st-flash|b' f` 只命中 grep ⇒ 放行。旧判据在**整条命令串**里找工具名，只读搜索会被误拦。",
+    "判定实现在 `tools/_gatecore.py`（**唯一实现**，两个钩子共用；改判据只改那一处）。",
+    "**设备动作不在范围内**（拍板 D3）：AI 不烧板不下单 ⇒ JLink* / openocd / st-flash 一律不列。"
+  ],
   "_exempt": [
     "**/.state/**",
     "**/.git/**",
@@ -16,20 +23,20 @@
       "name": "skill 库（本仓库）",
       "why": "改动本库 = 环境/改技能：先按 ROUTE.md §2.3 与相关 skill 条款执行",
       "paths": ["repo:**"],
+      "executables": [],
       "ops": ["环境/改技能", "环境/装技能"]
     },
     {
       "name": "受管脚本（库内会改动外部对象的脚本）",
       "why": "执行本库脚本 = 按脚本所属任务类型先读规程",
-      "commands": [
+      "executables": [
         "eda_sch.py",
         "inject_nc.py",
         "audit_sch.py",
         "dangling.py",
-        "delete_part.py",
-        "viewer.py"
+        "delete_part.py"
       ],
-      "ops": ["硬件/落图", "硬件/审计", "硬件/看图"]
+      "ops": ["硬件/落图", "硬件/审计"]
     }
   ]
 }
