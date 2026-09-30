@@ -39,6 +39,17 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 | 工程方法 | `ponytail`（+`-audit`/`-review`，反过度工程）· `tdd` · `codebase-design` · `diagnosing-bugs` · `grilling` 系（需求拷问）· `handoff` · `writing-for-agents` · `resolving-merge-conflicts` |
 | 环境管理 | `install-github-skill`（装技能规程）· `agent-skill-wiring`（跨客户端接线） |
 
+### 嘉立创 EDA 链的前置（一次准备）
+
+`easyeda-*` 四件套驱动的是**运行中的**嘉立创 EDA 专业版——装完 skill 后还需要两步 GUI 操作：
+
+1. 在 EDA「扩展管理器」里安装 [Run API Gateway](https://jlc-ext.com/item/oshwhub/run-api-gateway) 扩展，
+   并**勾选"允许外部交互"**（菜单栏出现「API Gateway」= 已加载；**它不在就不可能做任何 AI↔EDA 操作**）；
+2. 在 `easyeda-api/` 目录里跑一次 `npm install`（桥服务的 Node 依赖）。
+
+链路：**AI → `easyeda-api` skill → Bridge Server(49620-49629) → Run API Gateway 扩展 → 嘉立创 EDA 专业版**。
+⚠️ 扩展**不会自动重连**：EDA 先于桥打开、或桥中途重启时，在 EDA 里重载一次扩展（或重启 EDA）。
+
 ## 三条命令
 
 | 命令 | 作用 |
