@@ -9,13 +9,10 @@
 # ⚠️ 注意：`tools/skill_audit.py` 判来源（platform / vendor / local）靠的是**条目上方最近的
 # 那条非空注释**——所以上面这段说明必须放在本行**之前**，否则分类会从 platform 掉成 local。
 
-# Trae CN 平台自带的 skill（版权归属不明，仅本机使用；含其机制目录 shared/）
-/build-cmake/
-/debug-jlink/
-/flash-jlink/
-/serial-monitor/
-/serial-shell/
-/static-analysis/
+# Trae CN 平台机制目录（平台自带 skill 的公共依赖）
+# 2026-09-30：原本地层的 6 个平台 skill（build-cmake / debug-jlink / flash-jlink /
+# serial-monitor / serial-shell / static-analysis）已由**自研替代版**进仓，
+# 本目录不再被本库任何 skill 引用；保留在磁盘只为平台侧安全。
 /shared/
 
 # 第三方仓库克隆（不是 skill，可重新 clone）

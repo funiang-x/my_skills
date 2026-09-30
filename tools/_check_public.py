@@ -28,9 +28,8 @@ checks = [
      r"LESSONS"),
     ("第三方大件 ppt-master 混入",
      r"^ppt-master/"),
-    ("Trae 系 skill 混入",
-     r"^(build-cmake|debug-jlink|flash-jlink|"
-     r"serial-monitor|serial-shell|static-analysis|shared)/"),
+    ("Trae 平台机制目录 shared 混入",
+     r"^shared/"),
     ("运行态 .state 混入",
      r"^\.state/|/\.state/"),
     ("第三方克隆 embedded_ai_skills 混入",
@@ -55,11 +54,18 @@ print(", ".join(tops))
 must = ["ROUTE.md", "WORKFLOW.md", "PREREQUISITES.md", "AGENTS.md", "README.md",
         "LICENSE", ".gitignore",
         "tools/preflight.py", "tools/skillman.py", "tools/gate.py", "tools/ops.json",
-        "tools/skill_audit.py",
+        "tools/skill_audit.py", "tools/_test_skill_scripts.py",
         "hooks/skill_gate.py", "templates/global-door.md", "templates/project-door.md",
         "templates/hook-settings.json",
         "ponytail/SKILL.md", "easyeda-api/SKILL.md", "easyeda-viewer/SKILL.md",
-        "agent-skill-wiring/SKILL.md", "install-github-skill/SKILL.md"]
+        "agent-skill-wiring/SKILL.md", "install-github-skill/SKILL.md",
+        # 2026-09-30 自研替代版（原平台自带、现为公开层）
+        "build-cmake/SKILL.md", "build-cmake/scripts/cmake_builder.py",
+        "flash-jlink/SKILL.md", "flash-jlink/scripts/jlink_flasher.py",
+        "debug-jlink/SKILL.md", "debug-jlink/scripts/jlink_debugger.py",
+        "serial-monitor/SKILL.md", "serial-monitor/scripts/serial_monitor.py",
+        "serial-shell/SKILL.md", "serial-shell/scripts/shell_proxy.py",
+        "static-analysis/SKILL.md", "static-analysis/scripts/static_analyzer.py"]
 missing = [m for m in must if m not in files]
 if missing:
     bad = True
