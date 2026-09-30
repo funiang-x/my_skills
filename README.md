@@ -4,6 +4,41 @@
 覆盖 **选型 → 原理图 → 固件编码 → 烧录调试 → 工程方法** 的完整链路，
 自带**任务路由协议**（AI 开工先声明用哪个 skill）与**管理工具**（一键装到各 AI 客户端）。
 
+## 目录地图（先看这个，再往下看文件列表）
+
+**根目录只有三类东西**，一眼分辨：
+
+| 类型 | 怎么认 | 有哪些 |
+|---|---|---|
+| **skill** | 目录里有 `SKILL.md` | 下面那张表的 **17 个** |
+| **库基础设施** | 目录里**没有** `SKILL.md` | `hooks/`（硬闸门）· `templates/`（门模板）· `tools/`（管理工具） |
+| **根文件** | — | `ROUTE.md`（路由协议）· `AGENTS.md`（agent 入口）· `README.md` · `LICENSE` · `.gitignore` |
+
+> **为什么 17 个 skill 平铺在根目录、不能分文件夹？**
+> skill 发现机制要求 `<skills目录>/<名字>/SKILL.md` —— **只有一层**。
+> 放进 `skills/eda/xxx/` 客户端就**找不到**了。所以"看着零散"是格式的代价，不是没整理。
+> （18 个变 17 个：2026-09-30 退掉了纯转发壳 `grill-me`。）
+
+### 17 个 skill 按链路分组
+
+| 链路 | 干什么 | 目录名 |
+|---|---|---|
+| **硬件选型** | 需求 → 候选对比 → 选型结论 | `hardware-solution` |
+| **原理图**（嘉立创 EDA） | 桥 + API 参考 | `easyeda-api` |
+| | 离线看图 / 落图视觉复核 | `easyeda-viewer` |
+| **固件**（STM32 + J-Link） | 构建 / 烧录 / RTT / 体积 / 单测 | `stm32-hal-cli-flow` |
+| | 崩溃 / 卡死 / 静默死锁取证 | `stm32-hang-triage` |
+| **工程方法**（语言无关） | 反过度工程 + 全仓审计 + 只查 diff | `ponytail` · `ponytail-audit` · `ponytail-review` |
+| | 测试驱动开发 | `tdd` |
+| | 深模块设计词汇 | `codebase-design` |
+| | 通用 bug 诊断循环 | `diagnosing-bugs` |
+| | 需求 / 方案拷问 | `grilling` |
+| | 会话交接 | `handoff` |
+| | 写 agent 文档（skill / AGENTS.md） | `writing-for-agents` |
+| | 解 git 合并 / 变基冲突 | `resolving-merge-conflicts` |
+| **环境管理** | 从 GitHub 装 skill（含安全审计） | `install-github-skill` |
+| | 跨客户端接线 | `agent-skill-wiring` |
+
 ## 快速开始
 
 ```bash
@@ -29,15 +64,15 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 > 为什么不用"平台自动触发"兜底：各客户端触发机制不同、多数靠模型自行判断——不可预期。
 > 本仓库把控制权收回到**文件 + 显式声明**：换任何客户端，结果一致。
 
-## 收录什么
+## 本仓之外还有两个（**本地层**，走 `.gitignore`，不进本仓）
 
-| 链路 | skill |
-|---|---|
-| 硬件选型 | `hardware-solution`（架构 / 电源树 / 器件 / BOM 风险） |
-| 原理图（嘉立创 EDA） | `easyeda-api`（桥 + API）· `easyeda-viewer`（离线看图）· **easyeda-agent**（落图 / 布局 / 布线的 CLI 化规程 —— 本地层，不进本仓） |
-| 固件（STM32 + J-Link） | `stm32-hal-cli-flow`（构建/烧录/RTT CLI）· `stm32-hang-triage`（崩溃取证） |
-| 工程方法 | `ponytail`（+`-audit`/`-review`，反过度工程）· `tdd` · `codebase-design` · `diagnosing-bugs` · `grilling` 系（需求拷问）· `handoff` · `writing-for-agents` · `resolving-merge-conflicts` |
-| 环境管理 | `install-github-skill`（装技能规程）· `agent-skill-wiring`（跨客户端接线） |
+| 目录 | 是什么 | 为什么不在仓里 |
+|---|---|---|
+| `easyeda-agent` | 落图 / 布局 / 布线的 **CLI 化规程**（第三方，MIT）—— 本机已采用，替代了原自研的 `easyeda-*` 落图件 | 自带 `easyeda update` 自更新，本地改动会被覆盖；且是第三方大件 |
+| `ppt-master` | 汇报 PPT 链（第三方，84 MB / 13,000 文件） | 体量大，建议直接装上游 |
+
+> 它们仍由 `skillman` 统一挂到各客户端（与进仓的 skill 一视同仁），只是**不随本仓发布**。
+> 详见本机工作台的 `workbench/machine.md` §3.1。
 
 ### 嘉立创 EDA 链的前置（一次准备）
 
@@ -88,7 +123,7 @@ AI → 它的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → ED
   落图规程改用下一条。
 - `easyeda-agent`（本地层，不进本仓）：[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT）
 - `ponytail` 系：[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)（MIT，本库版有平台适配小改）
-- 方法层（`tdd` / `codebase-design` / `grilling` / `grill-me` / `handoff` / `writing-for-agents` / `diagnosing-bugs` / `resolving-merge-conflicts`）：[mattpocock/skills](https://github.com/mattpocock/skills)（MIT）
+- 方法层（`tdd` / `codebase-design` / `grilling` / `handoff` / `writing-for-agents` / `diagnosing-bugs` / `resolving-merge-conflicts`）：[mattpocock/skills](https://github.com/mattpocock/skills)（MIT）
 - 汇报 PPT 链：推荐直接安装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)（本库不含）
 
 ## 维护

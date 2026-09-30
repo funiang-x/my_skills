@@ -66,13 +66,14 @@
 | `通用/设计与代码质量` | 设计或改进模块接口、想在写代码前先跑测试 | `codebase-design`（深模块词汇）· `tdd` | skill 正文；写代码时 `ponytail` 仍然强制 |
 | `通用/调试` | 通用 bug 诊断循环（复现 → 收紧 → 定位） | `diagnosing-bugs`（与 `stm32-hang-triage` 互补：那个管 MCU 崩溃取证） | skill 正文 |
 | `通用/规格与协作` | 解 git 合并 / 变基冲突 | `resolving-merge-conflicts` | skill 正文 |
-| `通用/访谈与文档` | 拷问/访谈需求与设计（非代码向）、会话交接、写 agent 文档（skill / AGENTS.md） | `grilling`（访谈原语）· `grill-me` · `handoff` · `writing-for-agents` | skill 正文 |
+| `通用/访谈与文档` | 拷问/访谈需求与设计（非代码向）、会话交接、写 agent 文档（skill / AGENTS.md） | `grilling`（访谈原语）· `handoff` · `writing-for-agents` | skill 正文 |
 
-> **触发方式提醒**：`grill-me` / `handoff` 带 `disable-model-invocation: true`
+> **触发方式提醒**：`handoff` 带 `disable-model-invocation: true`
 > ——**不会自动触发，需用户点名**。本表更像是"你知道有这些可用"，而不是"agent 会自动命中"。
 >
-> 2026-09-30 退库：`grill-with-docs` —— 它的差异化能力（调 `domain-modeling` 补 ADR/glossary）
-> 已随该 skill 退库消失，正文与 `grill-me` 等价，属纯冗余。方案拷问仍走 `grilling`。
+> 2026-09-30 退库两个**纯转发壳**（正文只有一句「Call the Skill tool with X」，无独立内容）：
+> `grill-with-docs`（差异化能力随 `domain-modeling` 退库已死）与 `grill-me`（7 行，只是
+> `grilling` 的别名）。**方案拷问统一走 `grilling`**，不必保留别名目录。
 
 ### 2.5 本地扩展（可选）
 
