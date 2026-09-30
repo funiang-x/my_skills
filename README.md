@@ -50,6 +50,22 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 链路：**AI → `easyeda-api` skill → Bridge Server(49620-49629) → Run API Gateway 扩展 → 嘉立创 EDA 专业版**。
 ⚠️ 扩展**不会自动重连**：EDA 先于桥打开、或桥中途重启时，在 EDA 里重载一次扩展（或重启 EDA）。
 
+### 可选的另一条链路：easyeda-agent
+
+EDA 生态里还有 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT，569★）——
+它自带 CLI + daemon + **自己的** EDA 连接器 + **自己的** skill，走**平行的另一条链路**：
+
+```
+AI → 它自己的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → EDA
+```
+
+主打 typed actions（布局规划 `layout-plan`、PCB 布线、丝印整理、PDF 建库等），与本库 `easyeda-*`
+四件套**互补、可共存**（EDA 里两个连接器各跑各的，互不冲突）。
+
+- 它**不属于本库**：它的 skill 由它自己的 installer 管理，**不要**装进本库（双头管理会打架）；
+- 要用它：跑它的 installer（⚠️ 管道执行远程脚本前先**下载审阅**）→ `easyeda daemon start` → `easyeda health`；
+- 环境要求：EasyEDA Pro **V4**（推荐 V4.1.60+）。
+
 ## 三条命令
 
 | 命令 | 作用 |

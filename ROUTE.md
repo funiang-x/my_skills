@@ -77,6 +77,10 @@
 命中"触发特征"就必须装载。例：汇报 PPT 链推荐直接安装上游 `hugohe3/ppt-master`，
 然后在本地增量表里给 `文档/汇报PPT` 类型挂上它。
 
+另一类例（**平行工具链**）：[easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)
+是 EDA 侧的另一条独立链路（自带 CLI/daemon/连接器/skill），与本库 `easyeda-*` 互补、可共存；
+要用它就把它的 skill 挂到你自己的增量表（**不要**装进本仓）。
+
 ## 3. 路由声明（固定格式，贴在回复开头）
 
 ```
