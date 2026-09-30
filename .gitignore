@@ -1,0 +1,39 @@
+# ============================================================
+#  本地层（不进公开仓）—— 此清单即「公开 / 本机」的分界线
+# ============================================================
+
+# Trae CN 平台自带的 skill（版权归属不明，仅本机使用；含其机制目录 shared/）
+/build-cmake/
+/debug-jlink/
+/flash-jlink/
+/memory-analysis/
+/rtos-debug/
+/serial-monitor/
+/serial-shell/
+/static-analysis/
+/embedded_stm32/
+/workflow/
+/shared/
+
+# 第三方仓库克隆（不是 skill，可重新 clone）
+/embedded_ai_skills/
+
+# 第三方大件（84 MB / 13,000 文件；推荐直接安装上游，见 README）
+/ppt-master/
+
+# 实战台账与内部留证（含真实项目现场细节，只留本机）
+**/LESSONS.md
+**/PATCHES.diff
+
+# ============================================================
+#  杂项
+# ============================================================
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/.venv/
+**/venv/
+
+# 运行态（开工证池 / 闸门日志 / 备份件）——不进仓
+/.state/
+**/*.bak-*

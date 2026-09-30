@@ -1,0 +1,23 @@
+{
+  "_readme": [
+    "PreToolUse 硬闸门安装片段。把 hooks 键合并进客户端 settings.json（项目级或用户级），",
+    "并将 <REPO> 替换为本仓库的绝对路径（Windows 注意反斜杠用双反斜杠或正斜杠）。",
+    "支持 PreToolUse 的客户端：CodeBuddy / WorkBuddy / WorkBuddy AI / Qoder 等（各家协议同源）；",
+    "不支持的客户端（如 Trae）跳过即可——ROUTE.md 的声明协议仍然生效，只是没有硬拦截。",
+    "装好后：没拿开工证去改本库 / 跑库内脚本，会被 skill_gate.py 拦下（退出码 2）。"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "write_to_file|replace_in_file|execute_command|Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <REPO>/hooks/skill_gate.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
