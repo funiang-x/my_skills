@@ -43,7 +43,7 @@
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
 | `硬件/选型` | 选 MCU/器件、电源树、接口规划、BOM 风险、方案对比 | `hardware-solution` | skill 正文 |
-| `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | **`easyeda-agent`（强制，无例外）** + `easyeda-api`——第一个动作就装载它并按其规程执行，不许自己现写脚本重新发明流程 | skill 正文 + `references/` |
+| `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | `easyeda-agent` · `easyeda-api` | skill 正文 + `references/` |
 | `硬件/看图` | 离线看原理图/PCB、落图视觉复核、给图纸做离线快照 | `easyeda-viewer` | skill 正文 |
 | `硬件/审计` | 原理图查错、换料、标位号、端口修补、DRC | `easyeda-api` | skill 正文 |
 | `硬件/生产` | 打样检查、Gerber/BOM 导出、下单前核对 | `easyeda-api` | skill 正文 |
@@ -52,9 +52,13 @@
 
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
-| `软件/编码` | 写 / 改**任何**代码（含脚本）；全仓过度工程审计 / 只查复杂度的评审 | `ponytail`（**强制，无例外**）+ 2 个子命令**按用户点名触发**：`ponytail-audit`（全仓审计）· `ponytail-review`（只查 diff） | skill 正文 |
-| `软件/构建` | 嵌入式工程构建（CMake 系） | `stm32-hal-cli-flow` | skill 正文 |
-| `软件/调试` | 崩溃、卡死、HardFault、静默死锁、跑飞（STM32 + J-Link） | `stm32-hang-triage` | skill 正文 |
+| `软件/编码` | 写 / 改**任何**代码（含脚本）；全仓过度工程审计 / 只查复杂度的评审 | `ponytail` · `ponytail-audit` · `ponytail-review` | skill 正文 |
+| `软件/构建` | 嵌入式工程构建（CMake 系） | `stm32-hal-cli-flow` · `build-cmake` | skill 正文 |
+| `软件/调试` | 崩溃、卡死、HardFault、静默死锁、跑飞（STM32 + J-Link） | `stm32-hang-triage` · `debug-jlink` | skill 正文 |
+
+> **`ponytail` 是强制的**——写 / 改**任何**代码（含脚本）都必须装载它，无例外。
+> 它的 2 个子命令 `ponytail-audit`（全仓审计）· `ponytail-review`（只查 diff）**按用户点名触发**，
+> 不单独占任务类型，但仍登记在本行的 skill 格里（否则审计会判它们"发布出去也路由不到"）。
 
 ### 2.3 环境类
 
@@ -62,16 +66,16 @@
 |---|---|---|---|
 | `环境/接线` | 新装 AI 客户端、某客户端读不到 skill 或规则 | `agent-skill-wiring` | skill 正文 |
 | `环境/装技能` | 从 GitHub 安装 skill（含安全审计） | `install-github-skill` | skill 正文 |
-| `环境/改技能` | **加 / 改 / 修 / 退本库 skill**——把工作流程沉淀成新 skill、修正文里说错的话、装完补挂各端。**装新 skill 时 [MUST] 先定它的任务类型**：自己判断 → 判不准就问用户，**不许留空** | `无`（GitHub 来源另加 `install-github-skill`） | skill 正文 |
+| `环境/改技能` | **加 / 改 / 修 / 退本库 skill**——把工作流程沉淀成新 skill、修正文里说错的话、装完补挂各端。**装新 skill 时 [MUST] 先定它的任务类型**：自己判断 → 判不准就问用户，**不许留空**；**从 GitHub 来源装新 skill 时另加 `install-github-skill`** | 无 | skill 正文 |
 
 ### 2.4 通用类（语言 / 平台无关的工程方法）
 
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
-| `通用/设计与代码质量` | 设计或改进模块接口、想在写代码前先跑测试 | `codebase-design`（深模块词汇）· `tdd` | skill 正文；写代码时 `ponytail` 仍然强制 |
-| `通用/调试` | 通用 bug 诊断循环（复现 → 收紧 → 定位） | `diagnosing-bugs`（与 `stm32-hang-triage` 互补：那个管 MCU 崩溃取证） | skill 正文 |
+| `通用/设计与代码质量` | 设计或改进模块接口、想在写代码前先跑测试 | `codebase-design` · `tdd` | skill 正文；写代码时 `ponytail` 仍然强制 |
+| `通用/调试` | 通用 bug 诊断循环（复现 → 收紧 → 定位） | `diagnosing-bugs` | skill 正文 |
 | `通用/规格与协作` | 解 git 合并 / 变基冲突 | `resolving-merge-conflicts` | skill 正文 |
-| `通用/访谈与文档` | 拷问/访谈需求与设计（非代码向）、会话交接、写 agent 文档（skill / AGENTS.md） | `grilling`（访谈原语）· `handoff` · `writing-for-agents` | skill 正文 |
+| `通用/访谈与文档` | 拷问/访谈需求与设计（非代码向）、会话交接、写 agent 文档（skill / AGENTS.md） | `grilling` · `handoff` · `writing-for-agents` | skill 正文 |
 
 > **触发方式提醒**：`handoff` 带 `disable-model-invocation: true`
 > ——**不会自动触发，需用户点名**。本表更像是"你知道有这些可用"，而不是"agent 会自动命中"。
