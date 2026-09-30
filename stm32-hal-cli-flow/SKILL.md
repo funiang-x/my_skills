@@ -20,8 +20,8 @@ agent_created: true
 - `CMakePresets.json`（Debug / Release / RelWithDebInfo / Debug-UART）
 - `AGENTS.md`（给 AI 的硬约束）
 
-任一项缺失 → 不是这套工程，改走 `embedded_ai_skills` 下的 stm32 系列 skill
-（`stm32-dev-setup` / `stm32-project-init` / `stm32-debug` 那套是 ST-Link 路线，与本工程无关）。
+任一项缺失 → 不是这套工程：先确认工程是不是用了别的模板/入口——**本 skill 只认上面这套
+结构，别硬套**（套错的命令会烧错文件或读不到日志）。
 
 ---
 
@@ -29,7 +29,7 @@ agent_created: true
 
 | # | 规则 | 原因 |
 |---|------|------|
-| 1 | **只用 J-Link + SEGGER RTT**。禁止改用 `st-flash` / `STM32_Programmer_CLI` / `openocd` / `st-info` | 本机装了 `embedded_ai_skills`（stm32-project-init / stm32-debug 用 ST-Link 那套），但它依赖的 `build/board.env`、RTT 通道规划、判据全是另一套。混用会烧错文件或拿不到日志 |
+| 1 | **只用 J-Link + SEGGER RTT**。禁止改用 `st-flash` / `STM32_Programmer_CLI` / `openocd` / `st-info` | 本工程的探针路径、产物名、RTT 通道规划全收敛在 `Tools/fw.py`；ST-Link 路线的脚本与判据是另一套，混用会烧错文件或拿不到日志 |
 | 2 | 硬件动作一律走 `python Tools/fw.py <子命令>` | 探针路径、器件名、产物名收敛在 fw.py + `build/<preset>/board.env`，不要在临时脚本里散落绝对路径 |
 | 3 | 固件体积只认 `python Tools/fw.py size` | `arm-none-eabi-size` 的 section 求和 ≠ 真实占用（section 间有 ALIGN 间隙，`.data` 初值还在 Flash 里） |
 | 4 | 改动后**零告警**是硬指标，禁止新增 `-Wno-*` | 见 AGENTS.md §2 |
