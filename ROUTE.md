@@ -25,8 +25,9 @@
 > **两份分工**：`ROUTE.md` 管"**用哪个 skill**"（任务视图），`WORKFLOW.md` 管"**按什么阶段做**"（阶段视图）。
 
 **为什么第 ⓪ 步是"拿证"**：长文档进上下文会被压缩，关键条款会丢——"放在显眼处提醒"治不了这个，
-只有"不做就走不下去"能治。`preflight.py` 把该读的条款**正文**打印出来；没证去做改动动作，
-会被 `hooks/skill_gate.py`（PreToolUse 钩子）拦下——装法见 `templates/hook-settings.json`。
+只有"不做就走不下去"能治。`preflight.py` 把该读的条款**正文**打印出来。
+**没拿证去做改动动作的机器强制（`hooks/skill_gate.py`）是可选增强**——只有支持钩子的客户端能用；
+不装照样开工，代价见 [`framework/跨端就绪.md`](framework/跨端就绪.md) §6。装法见 `templates/hook-settings.json`。
 
 ## 2. 任务类型 → 装什么、读什么（装配清单）
 
@@ -67,7 +68,7 @@
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
 | `硬件/选型` | 选 MCU/器件、电源树、接口规划、BOM 风险、方案对比 | `hardware-solution` | skill 正文 + `framework/工程契约.md` |
-| `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | `easyeda-agent` · `easyeda-api` | skill 正文 + `references/` |
+| `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | `easyeda-agent` · `easyeda-api` | skill 正文 + `references/` + [`stm32-hal-cli-flow/本机事实.md`](stm32-hal-cli-flow/本机事实.md)（**两条 EDA 链路别混** + 现场前提） |
 | `硬件/看图` | 离线看原理图/PCB、落图视觉复核、给图纸做离线快照 | `easyeda-viewer` | skill 正文 |
 | `硬件/审计` | 原理图查错、换料、标位号、端口修补、DRC | `easyeda-api` | skill 正文 |
 | `硬件/生产` | 打样检查、Gerber/BOM 导出、下单前核对 | `easyeda-api` | skill 正文 |
@@ -155,9 +156,11 @@
   且**必须写回退路径**——EDA 链缺服务时退回"结构化连接表"（已有先例）。
 - **本地扩展层（可选）**：只适合本机的 skill / 私有台账，放进本库后加进 `.gitignore` 的本地层名单，
   并把它的任务类型登记进 §2 对应行（`tools/skillman.py doctor` 会校验无死链）。
-- **固件四层工程模板不在本仓**：`stm32-hal-cli-flow` 与 `规划/工程` 以一套"四层工程模板
-  （`Task` / `Operation` / `Device` / `Common` + `Tools/fw.py` + `CMakePresets.json`）"为前提；
-  模板是**工程侧资产**（使用者自备），本仓不携带——没有它就跳过该 skill，走工程自己的入口。
+- **固件四层工程模板已随本仓携带**（2026-10 起）：`templates/stm32-hal/`（参考板：
+  **立创·梁山派·天空星 F407 开发板**，核心板 STM32F407VGT6）。`stm32-hal-cli-flow` 与
+  `规划/工程` 就是这套模板的规程；派生用 `python Tools/derive.py <新名> --dest <父目录> --verify`
+  （`--verify` 会跑 build + test，退 0 = 新工程可用）。
+  **工程侧自备的模板仍然优先**：你已有的工程按工程自己的 `AGENTS.md` 与 `docs/` 走，本模板是兜底与起点。
 - **本协议不依赖任何"宿主工作台"**：凡需要本机具体数值的地方（路径 / 端口 / 版本），
   以你机器上的实际文件为准；本仓只承诺通用能力，不承诺"某台机器怎么干活"。
 - **AI 边界（任何客户端都适用）**：**不擅自烧录**（先与人确认）· 不下单 · 不擦片 ·
@@ -172,8 +175,10 @@
 硬要求：
 
 - 五个字段**一个都不能省**；skill 或参考为空时写 `无`，不许留空、不许删字段。
-- `证=` 来自 `python tools/preflight.py <类型>`。前四字段靠自觉，**这一条靠钩子拦**：
-  没证去做改动动作会被 `PreToolUse` 挡下（退出码 2）。
+- `证=` 来自 `python tools/preflight.py <类型>`。前四字段靠自觉，**这一条原本靠钩子拦**：
+  钩子（`hooks/skill_gate.py`）**已降级为可选增强**——装了才拦，没装就以本条打印为准。
+  **证池写在 `<当前工作区>/.ai-skills-state/preflight.json`**（不写用户目录；写不进去会自动降级为
+  只打印，不影响开工）。
 - **多轮任务中任务类型一变就重新声明**（例：先"软件/编码"后转"硬件/落图"→ 补一条 `[ROUTE]`）。
 - 声明必须是**动手前**的第一条输出；中途发现判错类型 → 立即补声明说明更正。
 
