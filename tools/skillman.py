@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""skillman — 本库管理三命令：install / sync / doctor
+"""skillman — 本库管理五命令：install / sync / doctor / doors / check
 
   install : 探测本机已装的 AI 客户端 → 把它们的 skills 目录接到本库 → 装全局门 → 报告
   sync    : git pull（可选）→ 重挂各端 → 体检
   doctor  : 只读体检（接线 / skill 可调用性 / 路由一致性 / 全局门）
+  doors   : 把三扇**项目薄门**铺进某个工程（幂等；存在则插标记块，缺 AGENTS.md 才新建）
+  check   : 验某个工程的门是否指到本库正本 + `PROJECT.md` 六字段是否齐
 
 约定：
-  · **默认干跑**（只打印计划），`--apply` 才真正落地；
+  · install / sync / doors **默认干跑**（只打印计划），`--apply` 才真正落地；
   · 只处理**探测到**的客户端目录，不碰你没装的东西；
-  · 写全局门文件前先备份（`.bak-<日期>`），写入用标记块（幂等，可安全重跑）。
+  · 写门文件前先备份（`.bak-<日期>`），写入用标记块（幂等，可安全重跑）。
 
 Windows 用 Junction（`mklink /J`，免管理员）；macOS / Linux 用 symlink。
 """
@@ -185,13 +187,24 @@ def door_status(p: Path):
     return "plan", "计划：插入标记块（先备份）"
 
 
-def apply_door(p: Path) -> str:
-    """写入/更新标记块。返回说明。"""
+def apply_block(p: Path, block: str, mb: str = MARK_BEGIN, me: str = MARK_END,
+                create: bool = False) -> str:
+    """把标记块写进 p（幂等）。返回说明。
+
+    与文件里"有没有这个块"无关，只看 `mb`/`me`；所以全局门与项目门共用这一份逻辑。
+    `create=True` 时才允许新建文件（父目录必须已存在）。
+    """
+    if not p.exists():
+        if not create:
+            return "不存在（跳过）"
+        if not p.parent.exists():
+            return "父目录不存在（跳过）"
+        p.write_text(block + "\n", encoding="utf-8")
+        return "已新建"
     text = p.read_text(encoding="utf-8", errors="replace")
-    block = door_text()
-    if MARK_BEGIN in text and MARK_END in text:
-        i = text.index(MARK_BEGIN)
-        j = text.index(MARK_END) + len(MARK_END)
+    if mb in text and me in text:
+        i = text.index(mb)
+        j = text.index(me) + len(me)
         if text[i:j] == block:
             return "已是最新"
         new = text[:i] + block + text[j:]
@@ -202,6 +215,162 @@ def apply_door(p: Path) -> str:
         new = text.rstrip("\n") + "\n\n" + block + "\n"
     p.write_text(new, encoding="utf-8")
     return "已写入"
+
+
+def apply_door(p: Path) -> str:
+    """写入/更新全局门标记块。"""
+    return apply_block(p, door_text())
+
+
+# ── 项目门（doors / check）──────────────────────────────────────────────────
+# 薄门：工程根的三扇客户端规则文件，只指路，不复制正文（正文只有 ROUTE.md 一份）。
+
+PROJ_MB = "<!-- my_skills:project-door -->"
+PROJ_ME = "<!-- /my_skills:project-door -->"
+
+# (相对路径, 是否需要新建, 为什么)
+PROJ_DOORS = [
+    ("AGENTS.md", "create", "通用约定：Codex / DSH / 多数 CLI agent 都读"),
+    (".trae/rules/project_rules.md", "keep", "Trae 系读这个；文件不存在就不建（trae 自己会生成）"),
+    ("CLAUDE.md", "keep", "Claude 系；不存在就不建"),
+]
+
+
+def parse_door_types(text: str) -> list:
+    """从已有的项目门文本里取出「本项目常用任务类型」下的条目（用于合并）。"""
+    if PROJ_MB not in text:
+        return []
+    seg = text[text.index(PROJ_MB):]
+    if "## 本工程的状态落点" in seg:
+        seg = seg[:seg.index("## 本工程的状态落点")]
+    out = []
+    for line in seg.splitlines():
+        line = line.strip()
+        if line.startswith("- `") and line.endswith("`"):
+            out.append(line[3:-1])
+    return out
+
+
+def project_door_text(types: list) -> str:
+    r = REPO.as_posix()
+    lines = [PROJ_MB,
+             "[MUST] 开工前置：先读 skill 库的 `%s/ROUTE.md`，按其 §1 走四步" % r,
+             "（拿证 → 判类 → 装 skill → 读参考），**先输出 `[ROUTE]` 声明**再干活。",
+             "拿证命令：`python %s/tools/preflight.py <类型>`。" % r,
+             "",
+             "## 本项目常用任务类型（按需增删）",
+             ""]
+    if types:
+        for t in types:
+            lines.append("- `%s`" % t)
+    else:
+        lines.append("- <按需填，任务类型名必须与 ROUTE.md §2 一致>")
+    lines += ["",
+              "## 本工程的状态落点",
+              "",
+              "当前进度与门禁基线只认工程根的 `PROJECT.md`（字段定义见",
+              "`%s/framework/阶段状态.md`）。**只在跨阶段或改基线时写它。**" % r,
+              PROJ_ME]
+    return "\n".join(lines)
+
+
+def cmd_doors(target, types, apply):
+    root = Path(target).expanduser().resolve()
+    if not root.exists():
+        print("目标不存在：%s" % root)
+        return 1
+    print("项目门 → %s" % root)
+    print("  说明：薄门只指路；正文（规则 / 阶段 / 契约）只有库里的 ROUTE.md、"
+          "WORKFLOW.md、framework/ 一份。")
+    rc = 0
+    for rel, mode, why in PROJ_DOORS:
+        p = root / rel
+        create = (mode == "create")
+        if p.exists():
+            state = "存在 → 插入/更新标记块"
+            # ★ 合并而不是覆盖：不带 --types 时保留门里已有的类型条目。
+            #   否则"只想刷新一下门"会把手工增删的类型清空（实测踩过）。
+            merged = list(types)
+            try:
+                for t in parse_door_types(p.read_text(encoding="utf-8", errors="replace")):
+                    if t not in merged:
+                        merged.append(t)
+            except OSError:
+                pass
+        elif create:
+            state = "缺失 → **新建**"
+            merged = list(types)
+        else:
+            print("  [skip] %-30s 缺失 → 跳过（不建）" % rel)
+            continue
+        block = project_door_text(merged)
+        if not apply:
+            kept = "（保留门里已有 %d 条并合并）" % (len(merged) - len(types)) if merged != types else ""
+            print("  [plan] %-30s %s   （%s）%s" % (rel, state, why, kept))
+            continue
+        print("  [done] %-30s %s → %s" % (rel, state, apply_block(p, block, PROJ_MB, PROJ_ME, create)))
+    if not apply:
+        print("\n（干跑。真落地加 --apply）")
+    return rc
+
+
+def cmd_check(target):
+    """验项目门是否指向本库正本。返回 0 / 1。"""
+    root = Path(target).expanduser().resolve() if target else Path.cwd()
+    if root.is_file():
+        root = root.parent
+    print("项目门体检 → %s" % root)
+    r = REPO.as_posix()
+    bad = 0
+
+    print("\n[1] 三扇薄门")
+    found = 0
+    for rel, _mode, _why in PROJ_DOORS:
+        p = root / rel
+        if not p.exists():
+            print("  [ -- ] %-30s 不存在" % rel)
+            continue
+        found += 1
+        text = p.read_text(encoding="utf-8", errors="replace")
+        if PROJ_MB not in text:
+            print("  [FAIL] %-30s 在，但没有 %s 标记块" % (rel, PROJ_MB))
+            bad += 1
+        elif r + "/ROUTE.md" not in text:
+            print("  [FAIL] %-30s 标记块指向的不是本库正本（期望含 %s/ROUTE.md）" % (rel, r))
+            bad += 1
+        else:
+            print("  [ OK ] %-30s 已指到本库正本" % rel)
+    if found == 0:
+        print("  [FAIL] 三扇门一个都没有 → 这个工程里没有 agent 会知道流程存在")
+        bad += 1
+
+    print("\n[2] 工程契约（六件事的现场证据）")
+    fw = root / "Tools" / "fw.py"
+    if fw.exists():
+        print("  [ OK ] Tools/fw.py 在（六件事的实现方）")
+    else:
+        print("  [ -- ] Tools/fw.py 不在 → 这个工程不是四层模板系（可能不是固件工程）")
+
+    print("\n[3] 状态落点")
+    proj = root / "PROJECT.md"
+    if not proj.exists():
+        print("  [WARN] PROJECT.md 不在 → \"上一步做完没、基线是什么\"无处可查")
+    else:
+        text = proj.read_text(encoding="utf-8", errors="replace")
+        need = ["阶段", "交付物", "门禁基线", "待办", "回退点", "下一步判据"]
+        miss = [k for k in need if k not in text]
+        if miss:
+            print("  [FAIL] PROJECT.md 缺字段：%s" % "、".join(miss))
+            bad += 1
+        else:
+            print("  [ OK ] PROJECT.md 六字段齐")
+
+    print("\n[4] 开工证状态（不依赖用户目录可写）")
+    st = root / ".ai-skills-state"
+    print("  [ %s ] %s" % ("OK" if st.exists() else " -- ", st))
+
+    print("\n结论：%s" % ("有 %d 项不合格" % bad if bad else "全部合格"))
+    return 1 if bad else 0
 
 
 def _today():
@@ -414,7 +583,7 @@ def cmd_doctor():
     errors, warns, oks = [], [], []
 
     # 1. 本库完整性
-    print("[1/5] 本库完整性")
+    print("[1/6] 本库完整性")
     required = ["ROUTE.md", "WORKFLOW.md", "PREREQUISITES.md", "AGENTS.md", "README.md",
                 "tools/preflight.py", "hooks/skill_gate.py", "tools/ops.json"]
     for rel in required:
@@ -427,7 +596,7 @@ def cmd_doctor():
 
     skills = skills_on_disk()
     # 2. 客户端接线
-    print("[2/5] 客户端接线（探针：%s/SKILL.md）" % PROBE)
+    print("[2/6] 客户端接线（探针：%s/SKILL.md）" % PROBE)
     for name, sd, how, pd in CLIENTS:
         if not Path(pd).expanduser().exists():
             continue
@@ -461,7 +630,7 @@ def cmd_doctor():
                 print("  ✗ %-16s 探针不通" % name)
 
     # 3. skill 可调用性
-    print("[3/5] skill 可调用性（%d 个）" % len(skills))
+    print("[3/6] skill 可调用性（%d 个）" % len(skills))
     bad = []
     for n in skills:
         ok, msg = frontmatter_ok(REPO / n)
@@ -474,7 +643,7 @@ def cmd_doctor():
         print("  ✓ 全部合法（name=目录名 + description 在位）")
 
     # 4. 路由一致性（ROUTE.md）
-    print("[4/5] 路由一致性（ROUTE.md）")
+    print("[4/6] 路由一致性（ROUTE.md）")
     try:
         sys.path.insert(0, str(REPO / "tools"))
         import preflight as _pf                                  # noqa: E402
@@ -533,8 +702,55 @@ def cmd_doctor():
         warns.append("路由解析不可用：%r" % e)
         print("  ⚠ 路由解析不可用：%r" % e)
 
-    # 5. 全局门
-    print("[5/5] 全局门")
+    # 5. 文档引用完整性
+    #
+    # 为什么要有这条：`stm32-hal-cli-flow` 曾经引用 6 个**不存在**的脚本名与 5 份不存在的
+    # `docs/guides/*.md`，而**没有任何门禁会报** —— 工程侧的 `check_doc_links.py` 只扫工程内的
+    # `.md`/`.txt`，管不到 skill 文件。于是 "照 skill 做，白跑" 可以长期潜伏。
+    # 这里只做**存在性**检查（离线、零依赖、零误报）；**真实路径数值不查**——那是工程侧的事。
+    print("\n[5/6] 文档引用完整性（相对链接 + skill 内路径）")
+    _md_bases = [REPO / "AGENTS.md", REPO / "ROUTE.md", REPO / "WORKFLOW.md",
+                 REPO / "README.md", REPO / "PREREQUISITES.md"]
+    _md_bases += sorted(REPO.glob("*/SKILL.md"))
+    _md_bases += sorted((REPO / "framework").glob("*.md")) if (REPO / "framework").is_dir() else []
+
+    def _rel_ok(base, rel):
+        """相对链接必须落在**本库**内且真实存在（拒绝越出库根的 `../../`）。"""
+        t = (base.parent / rel).resolve()
+        try:
+            t.relative_to(REPO.resolve())
+        except ValueError:
+            return False
+        return t.exists()
+
+    _bad = []
+    for m in sorted({p for p in _md_bases if p.is_file()}):
+        try:
+            txt = m.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for mo in re.finditer(r"\]\(([^)#\s]+?\.md)(#[^)]*)?\)", txt):
+            if not _rel_ok(m, mo.group(1)):
+                _bad.append("%s → %s" % (m.relative_to(REPO), mo.group(1)))
+        # skill 文档里用反引号写的**库根路径**也要真在。
+        # 只认本库真实存在的库根目录名——写成通配会误报：`install-github-skill` 里
+        # 引用的 `hooks/session-start` 是**待审计上游仓库**的文件名，不是本库路径
+        # （曾经把它算成死链，纯误报）。
+        for mo in re.finditer(r"`((?:framework|templates|tools)/[A-Za-z0-9_./-]+?)`", txt):
+            p = REPO / mo.group(1)
+            if not p.exists():
+                _bad.append("%s → `%s`" % (m.relative_to(REPO), mo.group(1)))
+    if _bad:
+        errors.extend(_bad[:5])
+        print("  ✗ %d 条引用指向不存在的东西：" % len(_bad))
+        for b in _bad[:10]:
+            print("    - %s" % b)
+    else:
+        print("  ✓ 相对链接与库内路径引用全部存在（查了 %d 份文档）"
+              % len([p for p in _md_bases if p.is_file()]))
+
+    # 6. 全局门
+    print("\n[6/6] 全局门")
     found = [c for c in GLOBAL_DOORS if Path(c).expanduser().exists()]
     installed = [c for c in found
                  if MARK_BEGIN in Path(c).expanduser().read_text(encoding="utf-8", errors="replace")]
@@ -564,15 +780,38 @@ def cmd_doctor():
 
 def main():
     ap = argparse.ArgumentParser(
-        prog="skillman", description="本库管理：install（装）/ sync（更新）/ doctor（体检）")
-    ap.add_argument("command", choices=["install", "sync", "doctor"])
-    ap.add_argument("--apply", action="store_true", help="真正落地（默认干跑）")
+        prog="skillman",
+        description="本库管理：install（装）/ sync（更新）/ doctor（体检）"
+                    " / doors（铺项目门）/ check（验项目门 + PROJECT.md）")
+    sub = ap.add_subparsers(dest="command", required=True)
+
+    for name, help_ in (("install", "探测本机 AI 客户端 → 接到本库 + 装全局门"),
+                        ("sync", "git pull（可选）→ 重挂各端 → 体检")):
+        sp = sub.add_parser(name, help=help_)
+        sp.add_argument("--apply", action="store_true", help="真正落地（默认干跑）")
+
+    sub.add_parser("doctor", help="只读体检（接线 / 可调用性 / 路由一致性 / 全局门）")
+
+    dp = sub.add_parser("doors", help="把三扇薄门铺进某个工程（幂等，先备份）")
+    dp.add_argument("target", help="工程根目录")
+    dp.add_argument("--types", default="",
+                    help="本项目常用任务类型，逗号分隔（会写进门的『本项目常用任务类型』节）")
+    dp.add_argument("--apply", action="store_true", help="真正落地（默认干跑）")
+
+    cp = sub.add_parser("check", help="验项目门是否指到本库正本 + PROJECT.md 六字段")
+    cp.add_argument("target", nargs="?", default="", help="工程根（默认当前目录）")
+
     args = ap.parse_args()
     if args.command == "install":
         return cmd_install(args.apply)
     if args.command == "sync":
         return cmd_sync(args.apply)
-    return cmd_doctor()
+    if args.command == "doctor":
+        return cmd_doctor()
+    if args.command == "doors":
+        types = [t.strip() for t in args.types.split(",") if t.strip()]
+        return cmd_doors(args.target, types, args.apply)
+    return cmd_check(args.target)
 
 
 if __name__ == "__main__":

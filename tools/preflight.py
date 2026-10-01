@@ -17,9 +17,14 @@
         --skills ~/.ai-skills --noun 操作类型 --ref 01_任务路由协议 硬件/落图
 
 开工证绑定**每个 skill 内容的 sha256** —— 所以**改了 skill 就必须重新走一遍**，旧证自动作废。
-证默认写在 `.state/preflight.json`（相对本仓库）。协议默认唯一来源：`ROUTE.md` §2。
+
+**证池默认写在 `<当前工作区>/.ai-skills-state/preflight.json`，不写用户目录**（2026-10 改）：
+写成工作区外，在受限文件沙箱下会被**直接拒绝**——于是"拿不到证"和"环境不让写"混成同一个
+失败，看起来像违规。放在工作区内，沙箱内外都能跑。
+可用环境变量 `AI_SKILLS_STATE` 指定别处；**写不进去也不影响开工**（降级为只打印条款）。
 """
 from pathlib import Path
+import os
 import sys
 
 try:
@@ -51,7 +56,14 @@ def _split_args() -> tuple:
 ARGS, OPT = _split_args()
 PROTOCOL = Path(OPT.get("protocol", REPO / "ROUTE.md")).resolve()
 SKILLS = Path(OPT.get("skills", REPO)).resolve()
-STATE = Path(OPT.get("state", REPO / ".state" / "preflight.json")).resolve()
+
+# 证池默认落**当前工作区**（不是用户目录、也不是本库）：见模块 docstring 的理由。
+# `AI_SKILLS_STATE` 可覆盖；`--state` 优先级最高（供别的宿主复用）。
+_DEFAULT_STATE = (Path(os.environ["AI_SKILLS_STATE"]).expanduser()
+                  if os.environ.get("AI_SKILLS_STATE")
+                  else Path.cwd() / ".ai-skills-state" / "preflight.json")
+STATE = Path(OPT.get("state", _DEFAULT_STATE)).resolve()
+
 NOUN = OPT.get("noun", "任务类型")                   # 打印措辞（工作台说"操作类型"）
 REF = OPT.get("ref", PROTOCOL.stem)                  # [ROUTE] 声明里的「依据=」
 TTL_HOURS = 8
@@ -200,23 +212,37 @@ def main():
     print("[ROUTE] 类型=%s | skill=%s | 参考=%s | 证=%s | 依据=%s"
           % (op, ",".join(shas) or "无", v["docs"][:40], tok, REF))
     print()
-    print("  （证已写入 `%s`，%d 小时内有效；"
-          "**skill 内容一改，证自动作废**，需重跑本命令）" % (STATE, TTL_HOURS))
-    print("=" * 78)
 
-    # 多张证并存（各带自己的 TTL），切任务不必来回重跑；同任务类型覆盖旧的
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        pool = json.loads(STATE.read_text(encoding="utf-8")).get("tokens", [])
-    except Exception:                                            # noqa: BLE001
-        pool = []
-    now = time.time()
-    pool = [t for t in pool
-            if now - t.get("ts", 0) <= TTL_HOURS * 3600 and t.get("op") != op]
-    pool.append({"op": op, "ts": now, "token": tok, "skills": shas})
-    STATE.write_text(json.dumps({"tokens": pool}, ensure_ascii=False, indent=1),
-                     encoding="utf-8")
+    # 落证：写不进去**不影响开工**，降级为只打印（受限沙箱下这是常态，不是错误）。
+    ok, why = _save_token(op, tok, shas)
+    if ok:
+        print("  （证已写入 `%s`，%d 小时内有效；"
+              "**skill 内容一改，证自动作废**，需重跑本命令）" % (STATE, TTL_HOURS))
+    else:
+        print("  （⚠️ 证**未落盘**（%s）——本次开工只以本条打印为准，"
+              "不依赖证池。要落盘可设 `AI_SKILLS_STATE` 指到可写目录）" % why)
+    print("=" * 78)
     return 0
+
+
+def _save_token(op, tok, shas):
+    """把证写进池子。→ (是否成功, 失败原因)。**绝不抛异常**：证是加速器，不是前提。"""
+    try:
+        STATE.parent.mkdir(parents=True, exist_ok=True)
+        # 多张证并存（各带自己的 TTL），切任务不必来回重跑；同任务类型覆盖旧的
+        try:
+            pool = json.loads(STATE.read_text(encoding="utf-8")).get("tokens", [])
+        except Exception:                                        # noqa: BLE001
+            pool = []
+        now = time.time()
+        pool = [t for t in pool
+                if now - t.get("ts", 0) <= TTL_HOURS * 3600 and t.get("op") != op]
+        pool.append({"op": op, "ts": now, "token": tok, "skills": shas})
+        STATE.write_text(json.dumps({"tokens": pool}, ensure_ascii=False, indent=1),
+                         encoding="utf-8")
+        return True, ""
+    except (OSError, ValueError) as e:
+        return False, "%s: %s" % (type(e).__name__, e)
 
 
 if __name__ == "__main__":
