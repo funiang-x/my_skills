@@ -42,11 +42,31 @@
 >    改完跑 `python tools/skillman.py doctor` 校验：引用的 skill 无死链 + `WORKFLOW.md`
 >    的 skill 名 ⊆（本表 ∪ `.gitignore` 本地层名单）。
 
+### 2.0 两级装载：先骨架层，再适配层
+
+**看每一行的「必读」列**：它出现 `framework/` 就是骨架层（芯片无关），
+出现 `adapters/` 就是适配层（芯片有关）。两份都要读，**顺序不能反** ——
+先建立"这一步要产出什么、判据是什么"，再看"这颗芯片上怎么做"。
+
+| 层 | 在哪 | 内容 | 换芯片时 |
+|---|---|---|---|
+| **骨架层** | `framework/`（净文档） | 适配层契约 · 工程契约 · 状态契约 · 跨端契约 · 冲突裁决 | **一行不改** |
+| **适配层** | 库根带 `SKILL.md` 的芯片目录（`stm32-hal-cli-flow/`） | 芯片的构建 / 烧录 / 调试图程、工具链、板级差异、坑册 | **换一个目录** |
+| **项目层** | 工程仓库内 | 源码 · `board_config.h` · `.ioc` · `PROJECT.md` | **新建一个工程** |
+
+**现状**：只实现了 STM32。ESP32 / nRF / GD32 **留了位、没实现**（刻意的——
+骨架只被一份实现拉着走，才不会被单一芯片的方言污染）。接入新芯片照
+[`framework/适配层契约.md`](framework/适配层契约.md) §3 的 7 步，**骨架层不许动**。
+
+> **三层各自的入口**（不要混）：`ROUTE.md` 说「用哪个 skill」·
+> [`WORKFLOW.md`](WORKFLOW.md) 说「按什么阶段做」·
+> [`framework/骨架总则.md`](framework/骨架总则.md) 说「哪些东西换芯片不用改」。
+
 ### 2.1 硬件类
 
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
-| `硬件/选型` | 选 MCU/器件、电源树、接口规划、BOM 风险、方案对比 | `hardware-solution` | skill 正文 |
+| `硬件/选型` | 选 MCU/器件、电源树、接口规划、BOM 风险、方案对比 | `hardware-solution` | skill 正文 + `framework/工程契约.md` |
 | `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | `easyeda-agent` · `easyeda-api` | skill 正文 + `references/` |
 | `硬件/看图` | 离线看原理图/PCB、落图视觉复核、给图纸做离线快照 | `easyeda-viewer` | skill 正文 |
 | `硬件/审计` | 原理图查错、换料、标位号、端口修补、DRC | `easyeda-api` | skill 正文 |
@@ -56,14 +76,14 @@
 
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
-| `软件/编码` | 写 / 改**任何**代码（含脚本）；全仓过度工程审计 / 只查复杂度的评审 | `ponytail` · `ponytail-audit` · `ponytail-review` | skill 正文 |
-| `软件/构建` | 嵌入式工程构建（CMake 系） | `stm32-hal-cli-flow` · `build-cmake` | skill 正文 |
-| `软件/烧录` | flash、下载固件、RTT 日志（J-Link） | `flash-jlink` | skill 正文 |
+| `软件/编码` | 写 / 改**任何**代码（含脚本）；全仓过度工程审计 / 只查复杂度的评审 | `ponytail` · `ponytail-audit` · `ponytail-review` | skill 正文 + `framework/工程契约.md` §2 |
+| `软件/构建` | 嵌入式工程构建（CMake 系） | `stm32-hal-cli-flow` · `build-cmake` | skill 正文 + `adapters` = [`stm32-hal-cli-flow/工具链.md`](stm32-hal-cli-flow/工具链.md) |
+| `软件/烧录` | flash、下载固件、RTT 日志（J-Link） | `flash-jlink` | skill 正文 + [`stm32-hal-cli-flow/SKILL.md`](stm32-hal-cli-flow/SKILL.md) §2 §3.2 |
 | `软件/静态分析` | cppcheck、clang-tidy、MISRA 筛选、交付前代码质量扫描 | `static-analysis` | skill 正文 |
-| `软件/体积` | `.map`、固件大小、内存占用、版本体积对比 | `stm32-hal-cli-flow` | skill 正文 |
+| `软件/体积` | `.map`、固件大小、内存占用、版本体积对比 | `stm32-hal-cli-flow` | skill 正文 + [`工具链.md`](stm32-hal-cli-flow/工具链.md) §3 |
 | `软件/RTOS` | 任务栈水位、死锁检测、调度异常、中断不响应 | `stm32-hang-triage` | skill 正文 |
-| `软件/调试` | 崩溃、卡死、HardFault、静默死锁、跑飞（STM32 + J-Link） | `stm32-hang-triage` · `debug-jlink` | skill 正文 |
-| `规划/工程` | 从模板派生新工程、换芯片 | `stm32-hal-cli-flow` | skill 正文 |
+| `软件/调试` | 崩溃、卡死、HardFault、静默死锁、跑飞（STM32 + J-Link） | `stm32-hang-triage` · `debug-jlink` | skill 正文 + [`stm32-hal-cli-flow/坑册.md`](stm32-hal-cli-flow/坑册.md) §D |
+| `规划/工程` | 从模板派生新工程、换芯片 | `stm32-hal-cli-flow` | [`stm32-hal-cli-flow/SKILL.md`](stm32-hal-cli-flow/SKILL.md) §4 + [`板级差异.md`](stm32-hal-cli-flow/板级差异.md) |
 
 > **`ponytail` 是强制的**——写 / 改**任何**代码（含脚本）都必须装载它，无例外。
 > 它的 2 个子命令 `ponytail-audit`（全仓审计）· `ponytail-review`（只查 diff）**按用户点名触发**，
@@ -74,10 +94,11 @@
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
 | `工具/串口` | 抓串口日志、等启动字符串、交互 shell、发命令看响应 | `serial-monitor` · `serial-shell` | skill 正文 |
-| `环境/接线` | 新装 AI 客户端、某客户端读不到 skill 或规则 | `agent-skill-wiring` | skill 正文 |
+| `环境/接线` | 新装 AI 客户端、某客户端读不到 skill 或规则 | `agent-skill-wiring` | skill 正文 + `framework/跨端就绪.md` |
 | `环境/装技能` | 从 GitHub 安装 skill（含安全审计） | `install-github-skill` | skill 正文 |
-| `环境/改技能` | **加 / 改 / 修 / 退本库 skill**——把工作流程沉淀成新 skill、修正文里说错的话、装完补挂各端。**装新 skill 时 [MUST] 先定它的任务类型**：自己判断 → 判不准就问用户，**不许留空**；**从 GitHub 来源装新 skill 时另加 `install-github-skill`** | 无 | skill 正文 |
+| `环境/改技能` | **加 / 改 / 修 / 退本库 skill**——把工作流程沉淀成新 skill、修正文里说错的话、装完补挂各端。**装新 skill 时 [MUST] 先定它的任务类型**：自己判断 → 判不准就问用户，**不许留空**；**从 GitHub 来源装新 skill 时另加 `install-github-skill`** | 无 | skill 正文 + `framework/适配层契约.md` §0 §3 |
 | `环境/流水线` | 把多步串成一条链：**编译 + 烧录 + 监控** / 编译 + 烧录 + 调试 | 无 | 各步对应 skill 正文 |
+| `环境/工作流` | 改这套三层结构本身（`framework/` 契约、`ROUTE`/`WORKFLOW` 映射、`PROJECT.md` 字段、适配层接入） | 无 | `framework/` 全部四份 + `framework/骨架总则.md` §6（分层判据） |
 
 ### 2.4 文档与知识类（无必载 skill）
 
@@ -85,8 +106,8 @@
 |---|---|---|---|
 | `硬件/bringup` | 板子到手：焊接核对、限流上电、首次点亮 | 无 | `WORKFLOW.md` §2.1 ⑤ 的 checklist |
 | `文档/报告` | 架构文档、测试报告、竞赛报告、编写说明 | 无 | `WORKFLOW.md` §2.1 ⑪ |
-| `知识/沉淀` | 踩坑、决策、选型、复盘 | 无 | 你自己的知识库约定 |
-| `管理/工作台` | 改本套文档、加 / 退 skill、加客户端 | 无 | 本仓 `README.md` 维护节 + §2.6 |
+| `知识/沉淀` | 踩坑、决策、选型、复盘 | 无 | 你自己的知识库约定 + 适配层 `坑册.md` 的格式（现象 → 根因 → 处置） |
+| `管理/工作台` | 改本套文档、加 / 退 skill、加客户端 | 无 | 本仓 `README.md` 维护节 + §2.6 + `framework/跨端就绪.md` |
 
 ### 2.5 汇报材料类
 
