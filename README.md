@@ -222,6 +222,17 @@ python tools/skillman.py doors <工程根> --apply   # ③ 按清单重铺
 
 详见 [`ROUTE.md`](ROUTE.md) §2.8（含"什么能搬、什么不能搬"的对照表）。
 
+**新机器上还有一个隐蔽漏**：`CLIENTS` 表是硬编码的 11 个客户端。装了个不在表里的客户端 ⇒
+探测不到 ⇒ **静默跳过** ⇒ 你"以为装好了，其实没接上"。所以 `install` 结尾会扫一遍主目录，
+把**像客户端但没登记**的目录报出来（分两类：需要接线的 / 只走规则门的）：
+
+```bash
+python tools/skillman.py install            # 干跑时就会报，含 "未见过但像客户端的目录" 一节
+python tools/skillman.py install --skills ~/某处   # 额外扫别的根
+```
+
+**故意不自动接**：猜出来的客户端接错比不接更糟。要接就把它加进 `tools/skillman.py` 的 `CLIENTS`。
+
 `doors` 的两条设计约束（都是踩过坑才加的）：
 
 - **薄门只指路**：门里只有"去读 `ROUTE.md`"和一个任务类型清单，**不复制规则正文**——

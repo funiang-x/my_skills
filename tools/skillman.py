@@ -550,7 +550,87 @@ def plan_client(name, skills_dir, how, probe_dir, apply):
     return "plan", "逐项：" + "、".join(parts)
 
 
-def cmd_install(apply: bool):
+def scan_unknown_clients(extra_roots=()):
+    """在常见位置找**看起来像 AI 客户端、但不在 CLIENTS 表里**的目录。
+
+    为什么要有它：`CLIENTS` 是硬编码的 11 个已知客户端。新机器上装了个不在表里的客户端
+    ⇒ 探测不到 ⇒ **静默跳过** ⇒ 你"以为装好了，其实没接上"。换机器时这是最隐蔽的一类漏。
+    这里只**报出来**，不自动改：猜出来的客户端接错比不接更糟。
+
+    判据（两项都满足才算候选）：
+      ① 名字像 AI 客户端：含 `agent` / `claude` / `codex` / `copilot` / `cursor` / `trae`
+         / `windsurf` / `qoder` / `gemini` / `zcode` / `buddy` / `workbuddy` / `marvis`
+         / `fitten` / `doubao` / `roo` / `kilo` / `cline` / `aider` / `continue`
+      ② 目录里有 AI 客户端的痕迹：`skills/` 子目录，或 `AGENTS.md` / `CLAUDE.md` /
+         `config.json` / `settings.json` 之一
+
+    `skills/` 子目录带上限：超过 5000 项就跳过（那是项目仓库，不是客户端配置目录）。
+    """
+    known = set()
+    for _n, sd, _how, pd in CLIENTS:
+        # 登记的是**探测器路径**（如 `~/.agents/skills`），但它的父目录
+        # （`~/.agents`）同样是"已登记客户端的配置根" ⇒ 也要算已知，否则误报。
+        for p in (Path(sd), Path(pd)):
+            ep = Path(p).expanduser()
+            known.add(ep)
+            known.add(ep.parent)
+    known.add(REPO)
+    known.add(REPO.parent)
+
+    # 「只走规则门」的客户端（无 skills 目录约定，靠全局门生效）——单独归一类，
+    # 免得被报成"未接线"。判据：出现在 GLOBAL_DOORS 名单里。
+    #
+    # ⚠️ 要把**各级祖先**都算上，不能只取直接父目录：门文件可能埋在子目录里
+    #    （`~/.qoder/memory/MEMORY.md` 的父是 `~/.qoder/memory`，而客户端根是 `~/.qoder`）。
+    #    只取父目录会漏判，把它错报成"未接线的客户端"（实测踩过）。
+    rules_only = set()
+    hp = Path.home()
+    for cand in GLOBAL_DOORS:
+        p = Path(cand).expanduser().parent
+        while True:
+            rules_only.add(p)
+            if p == hp or p.parent == p:
+                break
+            p = p.parent
+
+    pat = re.compile(r"agent|claude|codex|copilot|cursor|trae|windsurf|qoder|gemini|"
+                     r"zcode|buddy|marvis|fitten|doubao|roo|kilo|cline|aider|continue",
+                     re.I)
+    marks = ("AGENTS.md", "CLAUDE.md", "config.json", "settings.json")
+
+    roots = [Path.home()] + [Path(r).expanduser() for r in extra_roots]
+    seen, out = set(), []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        try:
+            children = list(root.iterdir())
+        except OSError:
+            continue
+        for d in children:
+            if not d.is_dir() or d in seen:
+                continue
+            seen.add(d)
+            if d in known:
+                continue
+            if not (pat.search(d.name) or (d / "skills").is_dir()):
+                continue
+            sd = d / "skills"
+            hits = []
+            if sd.is_dir():
+                try:
+                    if len(list(sd.iterdir())) > 5000:
+                        continue
+                    hits.append("skills/")
+                except OSError:
+                    pass
+            hits += [m for m in marks if (d / m).is_file()]
+            if hits:
+                out.append((d, hits, d in rules_only))
+    return sorted(out, key=lambda x: str(x[0]))
+
+
+def cmd_install(apply: bool, extra_roots=()):
     print("skillman install%s" % ("" if apply else "（干跑；加 --apply 落地）"))
     print("库：%s（%d 个 skill）\n" % (disp(REPO), len(skills_on_disk())))
 
@@ -585,6 +665,27 @@ def cmd_install(apply: bool):
     if not door_hit:
         print("  未发现全局规则文件——请按 templates/global-door.md 手工放置（或告诉 skillman 新增候选路径）")
 
+    print("\n[未见过但像客户端的目录]")
+    try:
+        unknowns = scan_unknown_clients(extra_roots)
+    except Exception as e:                                       # noqa: BLE001
+        unknowns = []
+        print("  扫描不可用：%r" % e)
+    real = [(d, h) for d, h, ro in unknowns if not ro]
+    ronly = [d for d, _h, ro in unknowns if ro]
+    if not unknowns:
+        print("  ✓ 没有发现未登记的客户端目录")
+    for d, hits in real:
+        print("  ? %-38s 痕迹：%s" % (disp(d), ", ".join(hits)))
+    for d in ronly:
+        print("  · %-38s 只走规则门（已在全局门名单里，无需 skills 接线）" % disp(d))
+    if real:
+        print("  ↑ 以上**未被接线**（不在 CLIENTS 表里）。若其中有你要用的客户端：")
+        print("    把它的 skills 目录加进 tools/skillman.py 的 CLIENTS，然后重跑 install --apply。")
+        print("    ⚠️ 这里**故意不自动接**：猜出来的客户端接错比不接更糟。")
+    elif unknowns:
+        print("  ✓ 没有需要接线的未登记客户端")
+
     print("\n[钩子（可选）]")
     print("  片段见 templates/hook-settings.json；合并进客户端 settings.json 后，"
           "没开工证的动作会被 hooks/skill_gate.py 拦下。")
@@ -596,7 +697,7 @@ def cmd_install(apply: bool):
 
 # ── sync ───────────────────────────────────────────────────────────────────
 
-def cmd_sync(apply: bool):
+def cmd_sync(apply: bool, extra_roots=()):
     print("skillman sync%s\n" % ("" if apply else "（干跑；加 --apply 落地）"))
     git = shutil.which("git")
     if (REPO / ".git").exists() and git:
@@ -611,7 +712,7 @@ def cmd_sync(apply: bool):
     else:
         print("[git] 本库不是 git 仓或没有 git——跳过更新")
     print("\n→ 接续执行 install 的挂接部分：")
-    rc1 = cmd_install(apply)
+    rc1 = cmd_install(apply, extra_roots)
     print("\n→ 接续执行 doctor：")
     rc2 = cmd_doctor()
     return max(rc1, rc2)
@@ -906,6 +1007,9 @@ def main():
                         ("sync", "git pull（可选）→ 重挂各端 → 体检")):
         sp = sub.add_parser(name, help=help_)
         sp.add_argument("--apply", action="store_true", help="真正落地（默认干跑）")
+        sp.add_argument("--skills", default="",
+                        help="额外扫这些根找未登记的客户端，逗号分隔"
+                             "（默认只扫用户主目录）")
 
     sub.add_parser("doctor", help="只读体检（接线 / 可调用性 / 路由一致性 / 全局门）")
 
@@ -924,10 +1028,11 @@ def main():
                     help="扫描根，逗号分隔（默认 %s）" % DOOR_LIBS)
 
     args = ap.parse_args()
+    extra = [r.strip() for r in args.skills.split(",") if r.strip()] if hasattr(args, "skills") else []
     if args.command == "install":
-        return cmd_install(args.apply)
+        return cmd_install(args.apply, extra)
     if args.command == "sync":
-        return cmd_sync(args.apply)
+        return cmd_sync(args.apply, extra)
     if args.command == "doctor":
         return cmd_doctor()
     if args.command == "doors":
