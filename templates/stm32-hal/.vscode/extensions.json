@@ -1,0 +1,15 @@
+{
+    // VS Code 打开本工程时会提示安装这些扩展，点一下就装好。
+    "recommendations": [
+        // 调试：以 J-Link/OpenOCD 为后端，带 SVD 寄存器视图与 RTT 日志集成
+        "marus25.cortex-debug",
+        // C/C++ 智能感知、跳转、格式化
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        // CMake 图形化配置/构建/预设选择
+        "ms-vscode.cmake-tools",
+        // 链接脚本 / 汇编语法高亮
+        "dan-c-underwood.arm",
+        "zixuanwang.linkerscript"
+    ]
+}

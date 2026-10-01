@@ -1,0 +1,124 @@
+{
+    // ========================================================================
+    //  工作区设置 —— 面向 AI 辅助嵌入式开发的 VS Code 环境
+    // ========================================================================
+
+    // ---------- CMake 集成 ----------
+    // 强制用 CMakePresets.json 里的预设，避免 CMake Tools 自己乱猜生成器
+    // （猜成 Visual Studio 就会编译失败，且报错难以理解）
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": false,
+    "cmake.buildDirectory": "${workspaceFolder}/build/${presetName}",
+    "cmake.generator": "Ninja",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+
+    // ---------- 文件关联（.ld / .s 默认是纯文本，关联后才有语法高亮）----------
+    "files.associations": {
+        "*.ld": "linker-script",
+        "*.s": "arm",
+        "*.S": "arm",
+        "*.h": "c",
+        "CMakeLists.txt": "cmake",
+        "*.cmake": "cmake"
+    },
+
+    // ---------- 工作区减负：资源管理器只显示"你要改的代码" ----------
+    //
+    // 判据只有一条：**这个文件是人写的，还是衍生的？**
+    //   人写的（Task/ Device/ Operation/ Common/ Test/ Tools/ 以及 Core/ 里的
+    //   USER CODE、**整个 docs/**）→ 显示
+    //   衍生的（构建产物、vendored 依赖、AI 记忆）→ 隐藏
+    //
+    // ★ `docs/` 一律保留可见（用户明确要求："docs 我在 vscode 要看的"）
+    //   —— 文档是"规范"的一部分，不算"与关键代码无关"。
+    //
+    // ⚠️ files.exclude **只影响显示** —— 不删文件、不影响构建、不影响
+    //    IntelliSense 与"转到定义"（语言服务器读的是 compile_commands.json，
+    //    不是文件树）。想临时看被隐藏的东西：把对应行改成 false 即可。
+    "files.exclude": {
+        // ---- 构建产物 ----
+        "**/build": true,
+        "**/.cache": true,
+
+        // ---- CubeMX 生成 / vendor 的只读依赖 ----
+        //      ⚠️ 不要手改这两个目录（docs/01 规矩 4）：Drivers/ 与
+        //      Middlewares/Third_Party/ 由 CubeMX 生成；Middlewares/RTT/ 是 vendor 的。
+        "Drivers": true,
+        "Middlewares": true,
+
+        // ---- AI 助手的记忆与备份：不属于工程代码 ----
+        ".workbuddy": true,
+        ".workbuddy-ai": true
+    },
+
+    // 搜索范围：只排除**纯衍生**的东西。
+    // ★ Drivers/ Middlewares/ docs/ **仍然可搜** —— 查 HAL 实现细节、
+    //   FreeRTOS 内部行为、当年为什么这么决策时很有用。别把它们加进来。
+    "search.exclude": {
+        "**/build": true,
+        "**/.git": true,
+        ".workbuddy": true,
+        ".workbuddy-ai": true
+    },
+
+    // 文件监视：把大目录排除。build/ 文件多，不排除会占满 watch 句柄，
+    // 表现是"改了文件但 VS Code 不刷新 / 保存变慢"。
+    "files.watcherExclude": {
+        "**/build/**": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "Drivers/**": true,
+        "Middlewares/**": true,
+        ".workbuddy/**": true,
+        ".workbuddy-ai/**": true
+    },
+
+    // ---------- 文件嵌套：把 .h 折到同名 .c 下面 ----------
+    // 目的：Inc/ Src/ 两层目录点起来烦，但**目录结构不动**（改了会牵动 CMake、
+    // 脚本、include 路径）。这里让资源管理器把 bsp_log.h 折进 bsp_log.c，
+    // 看起来就是一个文件，点一下展开。零风险 —— 只影响显示。
+    // 想看到全部散文件：把 explorer.fileNesting.enabled 改成 false。
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "*.c": "${capture}.h, ${capture}_*.h",
+        "*.h": "${capture}.c, ${capture}_*.c",
+        "CMakeLists.txt": "CMakePresets.json, *.cmake"
+    },
+
+    // ---------- 编辑器规范（与 .clang-format / .editorconfig 对齐）----------
+    "editor.formatOnSave": true,
+    "editor.rulers": [
+        88,
+        100
+    ],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.tabSize": 4
+    },
+    "[jsonc]": {
+        "editor.tabSize": 4
+    },
+    "[yaml]": {
+        "editor.tabSize": 2
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+
+    // ---------- cortex-debug：把工具链路径集中在这里 ----------
+    // 改机器/升级 J-Link 只改这两行，launch.json 里引用 ${config:cortex-debug.*}
+    "cortex-debug.armToolchainPath": "C:/Program Files/Compiler/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin",
+    "cortex-debug.JLinkGDBServerPath": "C:/Program Files/SEGGER/JLink_V936/JLinkGDBServerCL.exe",
+
+    // ---------- 终端 ----------
+    // Windows 下默认用 Git Bash：工程里所有命令（cmake/ninja/python）都按
+    // POSIX 写法给出，在 PowerShell 里复制粘贴会因为路径与转义差异出问题。
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "terminal.integrated.cwd": "${workspaceFolder}"
+}

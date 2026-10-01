@@ -1,0 +1,293 @@
+{
+    // ========================================================================
+    //  VS Code 任务 —— 从"写代码"到"板上跑起来"的全链路
+    //
+    //  硬件相关动作（烧录 / RTT / 闭环验证）统一走 Tools/fw.py，
+    //  路径（J-Link、器件名、产物名）都收敛在那一个脚本里，
+    //  这里只负责给它们起好记的名字，不在 VS Code 里散落绝对路径。
+    //
+    //  快捷入口：Ctrl+Shift+B = ② 构建固件 (Debug)
+    //
+    //  ⚠️ 这些任务**不会**出现在 CMake Tools 的侧边栏里 —— CMake Tools 只渲染
+    //  CMakePresets 的内容（configure / build preset、target）。要看本文件的任务，
+    //  走 Ctrl+Shift+P → "Tasks: Run Task"，或 终端 → 运行任务。
+    //
+    //  ⚠️ 硬件动作会碰真实探针与目标板。③ 的烧录是不可逆操作（docs/12）——
+    //     AI 跑它之前要和人确认"烧哪个预设、连的是哪个探针"。
+    //
+    //  ⚠️ ⑭ 是**唯一**会往工程目录**之外**写的任务（复制到上一级目录）。
+    //     它不可逆，但目标已存在时会拒绝执行、绝不覆盖。清单见 docs/10 §E。
+    // ========================================================================
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "① 配置 CMake (Debug)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "Debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "生成 build/Debug/ 与 compile_commands.json（IntelliSense 依赖它）"
+        },
+        {
+            "label": "② 构建固件 (Debug)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "build",
+                "--clean-first"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "★ 用 --clean-first：判「零告警」只能这样（增量构建会漏报，见 docs/11 §1）"
+        },
+        {
+            "label": "② 构建固件 (Release)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "build",
+                "--preset",
+                "Release",
+                "--clean-first"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "发布版：-Os -g0，体积最小"
+        },
+        {
+            "label": "② 构建固件 (UART 日志)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "build",
+                "--preset",
+                "Debug-UART"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "日志改走 USART1（引脚在 Core/Inc/board_config.h），手边没有 J-Link 时用"
+        },
+        {
+            "label": "③ 闭环验证 (门禁→烧录→RTT→判标记)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "verify",
+                "--duration",
+                "8"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "AI 闭环：lint → build → 体积门禁 → 烧录 → 抓 RTT → 检查 [AI_READY]。退出码 0=通过，详见 docs/11 §5"
+        },
+        {
+            "label": "③ 仅烧录 (J-Link SWD)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "flash",
+                "--no-build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "把现有产物烧进芯片并复位运行，不重新编译。⚠️ 不可逆操作（docs/12）"
+        },
+        {
+            "label": "④ 看 RTT 日志 (10 秒)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "rtt",
+                "--duration",
+                "10"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "不开调试会话，直接抓 10 秒 RTT 通道 0 的日志"
+        },
+        {
+            "label": "⑤ 查看固件体积",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "size"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "按链接脚本 MEMORY 段算的真实占用（与 ld 的 Memory region 逐字节一致）"
+        },
+        {
+            "label": "⑥ 体积门禁 (sizecheck)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "sizecheck"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "超预算即失败。⚠️ 调高上限 = 拆门禁，要调先走 docs/12"
+        },
+        {
+            "label": "⑦ 静态检查 (.ioc 与 board_config.h 对账)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "lint"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "抓 .ioc 与 Core/Inc/board_config.h 的确定性矛盾（双真相源漂移）。verify 也已前置这一步"
+        },
+        {
+            "label": "⑧ 文档死链",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "doccheck"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "骨架用短引用 docs/01（不是合法路径，肉眼看不出对错）—— 改了 .md 就跑它"
+        },
+        {
+            "label": "⑨ 门禁自检 (证明检查器会报错)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "selftest"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "在工程副本上跑基线 + 负向用例（原工程只读）。改完 Tools/ 下任何检查器后必跑"
+        },
+        {
+            "label": "⑩ PC 单元测试 (host 编译，无需板子)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "test"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "★ 四层架构的核心反馈回路：把 Operation/ 的源码拿到电脑上编译并跑单测。不烧板、秒级出结果"
+        },
+        {
+            "label": "⑪ GDB 调试会话",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "gdb"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "JLinkGDBServerCL + arm-none-eabi-gdb。图形界面请用调试面板的 launch.json 配置"
+        },
+        {
+            "label": "⑫ 环境体检",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "env"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "一条命令给全部答案：工具链版本 / 依赖 / J-Link 路径 / 器件 / 各预设构建目录"
+        },
+        {
+            "label": "⑬ 全量清理 (build/)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "只删 build/ 下所有预设的产物；源码、Drivers/、docs/ 一概不动"
+        },
+        {
+            "label": "⑭ 派生新工程 (复制 + 改名)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/derive.py",
+                "${input:newProjectName}",
+                "--verify"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "★ 把本模板复制成新工程：改名 3 处 + 建新 git 仓库 + 跑一遍 build/test 验证。⚠️ 它会往**本工程的上一级目录**写，是本文件里唯一会碰工程外路径的任务（docs/12）；清单见 docs/10 §E"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "newProjectName",
+            "type": "promptString",
+            "description": "新工程名（字母开头，只含字母/数字/下划线）—— 将派生到本工程的上一级目录"
+        }
+    ]
+}

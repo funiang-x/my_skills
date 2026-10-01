@@ -1,0 +1,83 @@
+{
+    // ========================================================================
+    //  调试配置（cortex-debug + J-Link SWD + GDB + RTT）
+    //
+    //  等价命令：python Tools/fw.py gdb
+    //
+    //  工具链路径不写死在这里，而是引用 settings.json 的两个 setting：
+    //      cortex-debug.armToolchainPath
+    //      cortex-debug.JLinkGDBServerPath
+    //  换机器 / 升级 J-Link 只改 settings.json 一处。
+    //
+    //  ⚠️ executable / device 换芯片时要同步改（值来自 Core/Inc/board_config.h）。
+    //  ⚠️ preLaunchTask 的字符串必须与 tasks.json 的 label **完全一致**，
+    //     否则 VS Code 会静默不跑 preLaunchTask（不报错，只是没先构建）。
+    // ========================================================================
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "J-Link SWD 调试 (Debug)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/PROJECT_NAME.elf",
+            "servertype": "jlink",
+            "device": "<CHIP_MODEL>",
+            "interface": "swd",
+            "serverpath": "${config:cortex-debug.JLinkGDBServerPath}",
+            "armToolchainPath": "${config:cortex-debug.armToolchainPath}",
+            "preLaunchTask": "② 构建固件 (Debug)",
+            "runToEntryPoint": "main",
+            // ---- SVD（外设寄存器视图）----
+            // 该文件**不随工程提供**（约 1.5 MB，且随硅片修订变化）。
+            // 没有它调试照样能跑，只是"外设寄存器"面板不显示具名寄存器。
+            // 需要时：把 SVD 存成 .vscode/<CHIP_MODEL>.svd，再把下面这行的注释去掉。
+            // 来源任选：
+            //   · https://github.com/posborne/cmsis-svd → data/STMicro/<CHIP_MODEL>.svd
+            //   · Keil STM32F4xx DFP 包内 (*.svd)
+            // "svdFile": "${workspaceFolder}/.vscode/<CHIP_MODEL>.svd",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "type": "console",
+                        "label": "日志 (RTT ch0)"
+                    },
+                    {
+                        "port": 1,
+                        "type": "console",
+                        "label": "数据 (RTT ch1)"
+                    }
+                ]
+            },
+            "showDevDebugOutput": "none"
+        },
+        {
+            // ★ 崩溃后用它：attach 不复位，保留现场（PC / LR / 栈）
+            "name": "J-Link SWD 连接（不复位，保留崩溃现场）",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Debug/PROJECT_NAME.elf",
+            "servertype": "jlink",
+            "device": "<CHIP_MODEL>",
+            "interface": "swd",
+            "serverpath": "${config:cortex-debug.JLinkGDBServerPath}",
+            "armToolchainPath": "${config:cortex-debug.armToolchainPath}",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "type": "console",
+                        "label": "日志 (RTT ch0)"
+                    }
+                ]
+            },
+            "showDevDebugOutput": "none"
+        }
+    ]
+}
