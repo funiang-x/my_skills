@@ -707,8 +707,15 @@ def cmd_doctor():
     # 为什么要有这条：`stm32-hal-cli-flow` 曾经引用 6 个**不存在**的脚本名与 5 份不存在的
     # `docs/guides/*.md`，而**没有任何门禁会报** —— 工程侧的 `check_doc_links.py` 只扫工程内的
     # `.md`/`.txt`，管不到 skill 文件。于是 "照 skill 做，白跑" 可以长期潜伏。
-    # 这里只做**存在性**检查（离线、零依赖、零误报）；**真实路径数值不查**——那是工程侧的事。
-    print("\n[5/6] 文档引用完整性（相对链接 + skill 内路径）")
+    #
+    # 两个来源：
+    #   a) markdown 相对链接 + 反引号写的**库根路径**（framework/ templates/ tools/）
+    #   b) 反引号写的 **skill 自己的子路径**（`scripts/xxx.py` 这类裸路径）
+    # ★ b 是**零误报**的那种（子目录名来自磁盘实际存在的一级子目录，不是猜的），
+    #   正是它能抓住"引用了不存在的脚本"。
+    # ⚠️ 刻意**不扫**反引号里的裸文件名（`CLAUDE.md` / `idf.py` / `CMakePresets.json`）——
+    #   那些可能是工程侧文件、工具名、或"要求产出的文件名"，实测 54 条里绝大多数是这类误报。
+    print("\n[5/6] 文档引用完整性（相对链接 + skill 子路径）")
     _md_bases = [REPO / "AGENTS.md", REPO / "ROUTE.md", REPO / "WORKFLOW.md",
                  REPO / "README.md", REPO / "PREREQUISITES.md"]
     _md_bases += sorted(REPO.glob("*/SKILL.md"))
@@ -740,6 +747,16 @@ def cmd_doctor():
             p = REPO / mo.group(1)
             if not p.exists():
                 _bad.append("%s → `%s`" % (m.relative_to(REPO), mo.group(1)))
+        # (b) 该 skill 自己的子路径引用：子目录名取自磁盘，所以不会误报
+        if m.name == "SKILL.md":
+            subs = [d.name for d in m.parent.iterdir()
+                    if d.is_dir() and not d.name.startswith((".", "__"))]
+            if subs:
+                rx = re.compile(r"`((?:%s)/[A-Za-z0-9_./-]+?)`"
+                                % "|".join(re.escape(s) for s in subs))
+                for mo in rx.finditer(txt):
+                    if not (m.parent / mo.group(1)).exists():
+                        _bad.append("%s → `%s`" % (m.relative_to(REPO), mo.group(1)))
     if _bad:
         errors.extend(_bad[:5])
         print("  ✗ %d 条引用指向不存在的东西：" % len(_bad))
