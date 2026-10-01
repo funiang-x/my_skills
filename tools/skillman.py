@@ -316,7 +316,9 @@ def cmd_doors(target, types, apply):
 
 def cmd_check(target):
     """验项目门是否指向本库正本。返回 0 / 1。"""
-    root = Path(target).expanduser().resolve() if target else Path.cwd()
+    if not target:
+        return cmd_pathcheck([])
+    root = Path(target).expanduser().resolve()
     if root.is_file():
         root = root.parent
     print("项目门体检 → %s" % root)
@@ -371,6 +373,104 @@ def cmd_check(target):
 
     print("\n结论：%s" % ("有 %d 项不合格" % bad if bad else "全部合格"))
     return 1 if bad else 0
+
+
+# ── pathcheck：门是否指向**当前**这个库（换机器后的头号故障）──────────────
+#
+# 为什么要有它：门的正文里写着**创建时的绝对库路径**。库一换机器 / 换目录，
+# 所有门就集体指向一个不存在的地方 —— 而**没有任何东西会报**：
+# `doctor` 只看全局门，项目门（可能几十个）散在磁盘各处没人查。
+# 症状是"AI 静默不走流程"，最难查的一类。
+#
+# 判据：门里出现 `<某个路径>/ROUTE.md`，而那个路径**不是当前 REPO** → 报出来。
+DOOR_LIBS = "~/Desktop/Project"        # 默认扫这些根（可用 --roots 覆盖）
+
+
+def find_door_files(roots):
+    names = {"AGENTS.md", "CLAUDE.md", "project_rules.md"}
+    skip = {".git", "node_modules", "build", "__pycache__", ".venv", "venv",
+            ".ai-skills-state", ".state"}
+    out = []
+    for r in roots:
+        rp = Path(r).expanduser()
+        if not rp.is_dir():
+            print("  ⚠ 跳过不存在的根：%s" % rp)
+            continue
+        for p in rp.rglob("*"):
+            if p.name not in names or not p.is_file():
+                continue
+            if any(part in skip for part in p.parts):
+                continue
+            out.append(p)
+    return sorted(out)
+
+
+def cmd_pathcheck(roots):
+    if not roots:
+        roots = [DOOR_LIBS]
+    me = REPO.as_posix()
+    print("门路径体检（门指向的是不是当前这个库）")
+    print("  当前库：%s" % me)
+    print("  扫描根：%s\n" % "、".join(roots))
+
+    files = find_door_files(roots)
+    ok = foreign = dead = nodoor = 0
+    bad_list = []
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if PROJ_MB not in text and MARK_BEGIN not in text:
+            nodoor += 1
+            continue
+        # 门里声明的所有 `<path>/ROUTE.md`
+        libs = set(re.findall(r"`([A-Za-z]:/[^`]*?)/ROUTE\.md`", text)) | \
+               set(re.findall(r"`(~/[^`]*?)/ROUTE\.md`", text))
+        if not libs:
+            nodoor += 1
+            continue
+        if me in libs:
+            ok += 1
+            continue
+        exists = [L for L in libs if Path(L.replace("~", str(HOME), 1)).is_dir()]
+        if exists:
+            foreign += 1
+            bad_list.append((f, "指向**另一个存在的库**：%s" % ", ".join(sorted(libs))))
+        else:
+            dead += 1
+            bad_list.append((f, "指向**不存在的路径**：%s" % ", ".join(sorted(libs))))
+
+    print("[1] 门文件总数 %d（含无门 %d）" % (len(files), nodoor))
+    print("[2] 指向本库 %d · 指向别的库 %d · 指向死路径 %d" % (ok, foreign, dead))
+    if bad_list:
+        print("\n[3] 要修的门（%d 个）：" % len(bad_list))
+        for f, why in bad_list[:40]:
+            print("   - %s\n       %s" % (f, why))
+        if len(bad_list) > 40:
+            print("   … 还有 %d 个" % (len(bad_list) - 40))
+        print("\n  修法：重铺该工程的薄门 ——")
+        print("    python tools/skillman.py doors <工程根> --types \"<常用任务类型>\" --apply")
+    else:
+        print("\n  ✓ 所有门都指向当前库（换机器后没留下旧路径）")
+
+    print("\n[4] 全局门（用户级）")
+    for cand in GLOBAL_DOORS:
+        p = Path(cand).expanduser()
+        if not p.exists():
+            continue
+        t = p.read_text(encoding="utf-8", errors="replace")
+        if MARK_BEGIN not in t:
+            print("  [ -- ] %-46s 无全局门标记块" % disp(p))
+        elif me + "/ROUTE.md" in t:
+            print("  [ OK ] %-46s 已指本库" % disp(p))
+        else:
+            print("  [FAIL] %-46s 指向别的路径（重跑 install --apply 会修）" % disp(p))
+    if foreign or dead:
+        print("\n结论：有 %d 个门需要重铺" % (foreign + dead))
+        return 1
+    print("\n结论：门路径全部正确")
+    return 0
 
 
 def _today():
@@ -815,8 +915,13 @@ def main():
                     help="本项目常用任务类型，逗号分隔（会写进门的『本项目常用任务类型』节）")
     dp.add_argument("--apply", action="store_true", help="真正落地（默认干跑）")
 
-    cp = sub.add_parser("check", help="验项目门是否指到本库正本 + PROJECT.md 六字段")
-    cp.add_argument("target", nargs="?", default="", help="工程根（默认当前目录）")
+    cp = sub.add_parser("check", help="验项目门是否指到本库正本 + PROJECT.md 六字段"
+                                       "（不给路径 = 全机扫一遍门路径）")
+    cp.add_argument("target", nargs="?", default="", help="工程根（省略则全机扫门路径）")
+
+    pp = sub.add_parser("pathcheck", help="扫全机的门文件，找出指向旧库/死路径的（换机器后必跑）")
+    pp.add_argument("--roots", default="",
+                    help="扫描根，逗号分隔（默认 %s）" % DOOR_LIBS)
 
     args = ap.parse_args()
     if args.command == "install":
@@ -828,6 +933,9 @@ def main():
     if args.command == "doors":
         types = [t.strip() for t in args.types.split(",") if t.strip()]
         return cmd_doors(args.target, types, args.apply)
+    if args.command == "pathcheck":
+        roots = [r.strip() for r in args.roots.split(",") if r.strip()]
+        return cmd_pathcheck(roots)
     return cmd_check(args.target)
 
 

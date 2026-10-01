@@ -192,20 +192,35 @@ AI → 它的 skill → easyeda CLI/daemon → EDA Agent Connector(.eext) → ED
 - **本机适配不改上游文件**（它自带 `easyeda update`，改了会被覆盖）。
 - 环境要求：EasyEDA Pro **V4**（推荐 V4.1.60+）+ 连接器 `.eext` + 工程开「允许外部交互」。
 
-## 五条命令
+## 六条命令
 
 | 命令 | 作用 |
 |---|---|
 | `install` | 探测本机已装的 AI 客户端 → 挂接 skills 目录（Junction / symlink）→ 装全局门 → 报告 |
 | `sync` | 更新本库（`git pull`）→ 重挂各端 → 体检 |
-| `doctor` | 只读体检：接线完好 / skill 可调用（frontmatter 合法）/ 路由无死链 / 全局门在位 |
+| `doctor` | 只读体检：接线完好 / skill 可调用（frontmatter 合法）/ 路由无死链 / 文档引用完整 / 全局门在位 |
 | `doors <工程>` | 把**三扇项目薄门**铺进某个工程（`AGENTS.md` / `CLAUDE.md` / `.trae/rules/`） |
 | `check <工程>` | 验某个工程的门是否指到本库正本 + `PROJECT.md` 六字段是否齐 |
+| `pathcheck` | **扫全机的门**，找出指向旧库 / 死路径的（**换机器后必跑**） |
 
 ```bash
 python tools/skillman.py doors ~/my_project --types "软件/编码,软件/构建" --apply
 python tools/skillman.py check ~/my_project
+python tools/skillman.py pathcheck                 # 不给路径 = 全机扫
 ```
+
+### 换机器：门里写着绝对路径，所以要重铺（三步）
+
+门正文含**创建时的库绝对路径**；库一换地方，所有门就集体指空 —— 而这件事**没有任何报错**，
+症状是"AI 突然不走流程了"。所以：
+
+```bash
+python tools/skillman.py install --apply    # ① 挂客户端 + 重写全局门（路径运行时自动更新）
+python tools/skillman.py pathcheck          # ② 自检：哪些门还指着旧库/死路径
+python tools/skillman.py doors <工程根> --apply   # ③ 按清单重铺
+```
+
+详见 [`ROUTE.md`](ROUTE.md) §2.8（含"什么能搬、什么不能搬"的对照表）。
 
 `doors` 的两条设计约束（都是踩过坑才加的）：
 
