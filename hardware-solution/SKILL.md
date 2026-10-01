@@ -4,6 +4,10 @@ description: "Use when the user needs embedded hardware architecture, MCU/SoC se
 agent_created: true
 ---
 
+> **接 EDA 类外部服务（MCP / daemon）前先读** [`framework/外部集成.md`](../framework/外部集成.md)：
+> 判据（够不到 + 有新增能力）、四条硬要求（**必须写回退路径** / 在 ROUTE 登记 /
+> 不许成为主干前置 / 设备动作先问人）、以及本机当前"服务都没装 ⇒ 实际走回退路径"的现状。
+
 # Hardware Solution
 
 ## 工作方式

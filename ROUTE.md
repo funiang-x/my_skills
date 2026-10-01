@@ -98,7 +98,8 @@
 | `环境/装技能` | 从 GitHub 安装 skill（含安全审计） | `install-github-skill` | skill 正文 |
 | `环境/改技能` | **加 / 改 / 修 / 退本库 skill**——把工作流程沉淀成新 skill、修正文里说错的话、装完补挂各端。**装新 skill 时 [MUST] 先定它的任务类型**：自己判断 → 判不准就问用户，**不许留空**；**从 GitHub 来源装新 skill 时另加 `install-github-skill`** | 无 | skill 正文 + `framework/适配层契约.md` §0 §3 |
 | `环境/流水线` | 把多步串成一条链：**编译 + 烧录 + 监控** / 编译 + 烧录 + 调试 | 无 | 各步对应 skill 正文 |
-| `环境/工作流` | 改这套三层结构本身（`framework/` 契约、`ROUTE`/`WORKFLOW` 映射、`PROJECT.md` 字段、适配层接入） | 无 | `framework/` 全部四份 + `framework/骨架总则.md` §6（分层判据） |
+| `环境/工作流` | 改这套三层结构本身（`framework/` 契约、`ROUTE`/`WORKFLOW` 映射、`PROJECT.md` 字段、适配层接入） | 无 | `framework/` 全部**五份** + `framework/骨架总则.md` §6（分层判据） |
+| `环境/外部集成` | 判断某一步该走本地 CLI 还是接外部服务（MCP / daemon / 云）；接 EDA、仪器、第三方服务 | 无 | [`framework/外部集成.md`](framework/外部集成.md) 全文 + `ROUTE.md` §2.7（降级路径） |
 
 ### 2.4 文档与知识类（无必载 skill）
 
@@ -149,6 +150,9 @@
 - **工具链降级**：串口 skill 需 `pyserial`（缺 → 脚本明确报 `environment-missing` 并给 PuTTY / screen 替代）；
   `easyeda-*` 需 Node（缺 → 用 EDA 客户端自带导出）；J-Link 两件套需 SEGGER 工具包
   （缺 → 报 `environment-missing`，**脚本不猜安装路径**）。
+- **外部服务的降级**（EDA / 仪器 / 云）：判据与四条硬要求见
+  [`framework/外部集成.md`](framework/外部集成.md)。要点：**主干不许依赖它**，
+  且**必须写回退路径**——EDA 链缺服务时退回"结构化连接表"（已有先例）。
 - **本地扩展层（可选）**：只适合本机的 skill / 私有台账，放进本库后加进 `.gitignore` 的本地层名单，
   并把它的任务类型登记进 §2 对应行（`tools/skillman.py doctor` 会校验无死链）。
 - **固件四层工程模板不在本仓**：`stm32-hal-cli-flow` 与 `规划/工程` 以一套"四层工程模板
