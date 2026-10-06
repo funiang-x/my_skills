@@ -1,6 +1,6 @@
 # PREREQUISITES — 拿到本仓到能开干，中间还差什么
 
-> **公开层 23 个 skill，clone + 安装即可全流程开工。**
+> **公开层 24 个 skill，clone + 安装即可全流程开工。**
 > （2026-09-30 起：原先 6 个"平台自带、非 Trae 用户拿不到"的 skill 已由**自研替代版进仓**，
 > 本仓对 STM32 + J-Link + 嘉立创 EDA 主链**自洽**。）
 > 剩下要自备的只有两类**可选件**：真工具链（缺了各有降级路径）与两个第三方大件 skill。
@@ -19,13 +19,14 @@ python tools/skillman.py doctor
 **新机 clone 后第一次跑**，唯一可能出现的警告是本地层第三方大件未装：
 
 ```
-⚠ 本地层 skill 未装（不随本仓发布，属已知状态）：easyeda-agent,ppt-master
+⚠ 本地层 skill 未装（不随本仓发布，属已知状态）：easyeda-agent,ppt-master,datasheets,lcsc,jlcpcb,bom
 ```
 
 | 缺的 | 影响 | 去哪补 |
 |---|---|---|
 | `easyeda-agent` | 与 `easyeda-api` **配合使用**（它出 typed actions，api 出桥与 API 参考）——没它时降级为 api 单跑 | §3.2（可选） |
 | `ppt-master` | 汇报 PPT 链——没它也能写文档 | §3.1（可选） |
+| kicad-happy 四件 | `硬件/深读` 的提取引擎——没它时 `datasheet-study` 走子代理读 PDF 降级 | §3.5（可选） |
 
 **这不是缺陷，是分层**——所以 `doctor` 把它算**警告**不算错误。真正会算**错误**的是
 「**公开层** skill 被引用却不在」，那说明表写错了或仓不完整。
@@ -81,15 +82,17 @@ skill 正文要的是真工具——**缺了不等于不能开工**：
 
 ## 3. 第 2 层 · **不在本仓里的东西**（都可选）
 
-### 3.1 本地层第三方大件（2 个，由 `.gitignore` 划定，不随本仓发布）
+### 3.1 本地层第三方件（2 个大件 + kicad-happy 摘装四件，由 `.gitignore` 划定，不随本仓发布）
 
 | 名字 | 是什么 | 怎么来 |
 |---|---|---|
 | `ppt-master` | 汇报 PPT 链（84 MB / 13,000 文件） | 装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master) |
 | `easyeda-agent` | 落图 / 布局 / 布线的 CLI 化规程（2.7 MB） | 见 §3.2 |
+| `kicad-happy` 四件（`datasheets`/`lcsc`/`jlcpcb`/`bom`） | datasheet 结构化提取 / LCSC 搜器件下手册 / 打样装配规则 / BOM 生命周期（103 文件） | 见 §3.5 |
 
 **缺了会怎样**：`硬件/落图` 少一个加强件（依旧可走 `easyeda-api` 自带规程）；
-`文档/汇报PPT` 无 skill 可用（按工程自己的文档规范手工产出）。其余流程不受影响。
+`文档/汇报PPT` 无 skill 可用（按工程自己的文档规范手工产出）；
+`硬件/深读` 走 `datasheet-study` 自带的子代理读 PDF 降级；`硬件/生产` 少两份备用知识册。其余流程不受影响。
 
 > **平台机制目录 `shared/`**：Trae CN 平台自带 skill 的公共依赖，本库自研版**不再引用**；
 > 留在 `.gitignore` 名单里只是防误入仓。
@@ -123,11 +126,47 @@ EDA 生态的 [zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwo
 按 `ROUTE.md` §2.7 自建**本地扩展层**：放进本库目录 → 加进 `.gitignore` 本地层名单 →
 把任务类型登记进 `ROUTE.md` §2 对应行（`tools/skillman.py doctor` 校验无死链）。
 
+### 3.5 kicad-happy 四件摘装（`硬件/深读` 的引擎，2026-10-06 审计安装）
+
+上游 [aklofas/kicad-happy](https://github.com/aklofas/kicad-happy)（MIT），11 个硬件分析 skill 的集合；
+本库只摘**与 EDA 无关**的四件进本地层（`.gitignore` 划出，不随本仓发布）：
+
+| 摘件 | 管什么 | 登记在 |
+|---|---|---|
+| `datasheets`（79 文件） | datasheet PDF 结构化提取（引脚/电气特性/外设）+ 按 MPN 缓存 | `硬件/深读` |
+| `lcsc`（9 文件） | LCSC 搜器件 / 下手册（jlcsearch 社区 API，无 key） | `硬件/深读` |
+| `jlcpcb`（1 文件） | JLCPCB 打样/装配规则知识册 | `硬件/生产` |
+| `bom`（14 文件） | BOM 生命周期（深绑 KiCad 符号属性，立创用户备用） | `硬件/生产` |
+
+**装法**（重装 / 升级照做；升级即覆盖，上游文件不改一字）：
+
+```bash
+curl -sL -o kh.tar.gz "https://codeload.github.com/aklofas/kicad-happy/tar.gz/refs/heads/main"
+tar -xzf kh.tar.gz && cp -r kicad-happy-main/skills/{datasheets,lcsc,jlcpcb,bom} <库根>/
+```
+
+**审计留证（2026-10-06，纯静态、不执行被审内容）**：危险关键词全扫仅命中自清理（`rm -rf` 只指自己的
+缓存目录）与 poppler 调用（subprocess 只跑 `pdftotext` / `pdfinfo`）；外联仅 LCSC/JLCPCB 官方域 +
+jlcsearch 社区 API + schema 命名空间（`kicad-happy.local`，非真实端点）；无 base64 载荷、无敏感路径外传；
+全部脚本 `py_compile` 通过。**评级：可装**。
+
+**两条使用约定**（写在消费方 `datasheet-study`，由它负责翻译）：上游文档的 `skills/<名>/…` 前缀在本库
+按**库根 `<名>/…`** 解析（四件直接在库根一级）；上游写 `python3` 处一律按 `python` 执行（Windows）。
+`datasheets` 的页选择脚本依赖 poppler——缺了走 `datasheet-study` 的降级路径。
+
+### 3.6 立创EDA 扩展（可选增强，不属于本库 skill）
+
+`easyeda-ai-assistant`（[jifengshandian/easyeda-ai-assistant](https://github.com/jifengshandian/easyeda-ai-assistant)，
+Apache-2.0）：立创EDA专业版原生扩展，定位"不帮你画图，画完帮你查"——悬空引脚 / DRC / 电源拓扑 /
+引脚级问题（BOOT0 悬空、NRST 缺上拉、去耦电容位置等）审查，需要深度联动时可开它的只读 MCP。
+**装法**：立创EDA「扩展管理器」搜 "AI Schematic Assistant"。
+**没装走回退**：`easyeda-viewer` / `easyeda-api` 审计链（导出 JSON 离线查）——WORKFLOW ③④ 的画后审查主干不依赖它。
+
 ---
 
 ## 4. 一句话总结
 
 | 谁 | 能不能开箱即用 |
 |---|---|
-| **任意 AI / 任意机器** | ✅ 公开层 23 个 skill clone + `install` 即得；缺的只是真工具链与 2 个可选大件（**都有降级路径**） |
+| **任意 AI / 任意机器** | ✅ 公开层 24 个 skill clone + `install` 即得；缺的只是真工具链与可选第三方件（**都有降级路径**） |
 | **要落图加强 / 汇报 PPT** | 按 §3 单独安装两个可选件——不装也各有替代 |

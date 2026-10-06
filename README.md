@@ -1,7 +1,7 @@
 # my_skills — 嵌入式 AI Skill 集
 
 一套「让 AI 在做嵌入式软硬件流程时**自动取用正确 skill**」的技能仓库。
-覆盖 **选型 → 原理图 → 固件编码 → 构建/烧录/调试 → 工程方法** 的完整链路，
+覆盖 **选型 → 器件深读 → 原理图/PCB（人工画图为主）→ 固件编码 → 构建/烧录/调试 → 工程方法** 的完整链路，
 自带**任务路由协议**（AI 开工先声明用哪个 skill）与**管理工具**（一键装到各 AI 客户端）。
 
 ## 目录地图（先看这个，再往下看文件列表）
@@ -10,22 +10,24 @@
 
 | 类型 | 怎么认 | 有哪些 |
 |---|---|---|
-| **skill** | 目录里有 `SKILL.md` | 下面那张表的 **23 个** |
+| **skill** | 目录里有 `SKILL.md` | 下面那张表的 **24 个** |
 | **库基础设施** | 目录里**没有** `SKILL.md` | `hooks/`（硬闸门）· `templates/`（门模板）· `tools/`（管理工具） |
 | **根文件** | — | `ROUTE.md`（用哪个 skill）· `WORKFLOW.md`（按什么阶段做）· **`PREREQUISITES.md`（要跑起来还差什么）** · `AGENTS.md`（agent 入口）· `README.md` · `LICENSE` · `.gitignore` |
 
-> **为什么 23 个 skill 平铺在根目录、不能分文件夹？**
+> **为什么 24 个 skill 平铺在根目录、不能分文件夹？**
 > skill 发现机制要求 `<skills目录>/<名字>/SKILL.md` —— **只有一层**。
 > 放进 `skills/eda/xxx/` 客户端就**找不到**了。所以"看着零散"是格式的代价，不是没整理。
 > （17 → 23：2026-09-30 六个原「平台自带、非 Trae 用户拿不到」的 skill
 > —— `build-cmake` / `flash-jlink` / `debug-jlink` / `serial-monitor` / `serial-shell` / `static-analysis`
-> —— 由**自研替代版**进仓，本仓自此对 JTAG/CMake/串口/静态分析**自洽**。）
+> —— 由**自研替代版**进仓，本仓自此对 JTAG/CMake/串口/静态分析**自洽**。
+> 23 → 24：2026-10-06 自研 `datasheet-study`（器件深读）进仓。）
 
-> **23 是"公开层"的数，不是你机器上看到的数。**
-> 本机另外挂着 **2 个本地层** skill（第三方大件 `easyeda-agent` · `ppt-master`，见 `.gitignore` 的分界线）——
+> **24 是"公开层"的数，不是你机器上看到的数。**
+> 本机另外挂着 **6 个本地层** skill（第三方大件 `easyeda-agent` · `ppt-master` + kicad-happy 摘装四件
+> `datasheets`/`lcsc`/`jlcpcb`/`bom`，见 `.gitignore` 的分界线）——
 > 它们与公开层**一视同仁**地挂到各客户端，只是**不随本仓发布**。
-> 所以本机含 `SKILL.md` 的一级目录是 **25 个**。
-> 看到"目录比 23 多"不是没整理，是分层；**判据永远是 `.gitignore`**，不是数数。
+> 所以本机含 `SKILL.md` 的一级目录是 **30 个**。
+> 看到"目录比 24 多"不是没整理，是分层；**判据永远是 `.gitignore`**，不是数数。
 
 ### 三份文档 + 五份契约（别混）
 
@@ -66,6 +68,7 @@ stm32-hal-cli-flow/   适配层：STM32 的构建/烧录/调试图程 + 工具�
 | 你要做的事 | 装哪个 skill |
 |---|---|
 | 选 MCU / 选器件 / 比方案 | `hardware-solution` |
+| 读/讲 datasheet、确认引脚/时序/电气参数（器件深读） | `datasheet-study`（引擎 `datasheets` ⚠️ / `lcsc` ⚠️） |
 | 画 / 改原理图、改网表、跑 DRC | `easyeda-agent` ⚠️ + `easyeda-api`（**两者配合使用**） |
 | 离线看图纸、落图后视觉复核 | `easyeda-viewer` |
 | 写 / 改**任何**代码（含脚本） | `ponytail`（**强制，无例外**） |
@@ -89,11 +92,12 @@ stm32-hal-cli-flow/   适配层：STM32 的构建/烧录/调试图程 + 工具�
 | 新装了 agent、读不到 skill | `agent-skill-wiring` |
 | 做 / 改汇报 PPT | `ppt-master` ⚠️ |
 
-### 23 个 skill 按链路分组
+### 24 个 skill 按链路分组
 
 | 链路 | 干什么 | 目录名 |
 |---|---|---|
 | **硬件选型** | 需求 → 候选对比 → 选型结论 | `hardware-solution` |
+| **器件深读**（2026-10-06 自研进仓） | 读/讲 datasheet、参数逐条带页码引用 | `datasheet-study` |
 | **原理图**（嘉立创 EDA） | 桥 + API 参考（落图主链） | `easyeda-api` |
 | | 离线看图 / 落图视觉复核 | `easyeda-viewer` |
 | **固件**（STM32 + J-Link） | 构建 / 烧录 / RTT / 体积 / 单测（自有模板工程体系） | `stm32-hal-cli-flow` |
@@ -128,9 +132,9 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 装好后，在任意支持 skill 的 AI 客户端里正常干活即可——AI 会按 `ROUTE.md`
 的装配清单路由到对应 skill，并在动手前输出 `[ROUTE]` 声明给你看。
 
-> ✅ **公开层 23 个 skill，clone + install 即可全流程开工**（STM32 + J-Link + 嘉立创 EDA 主链自洽）。
+> ✅ **公开层 24 个 skill，clone + install 即可全流程开工**（STM32 + J-Link + 嘉立创 EDA 主链自洽）。
 > 还需自备的只有两类**可选件**：真工具链（J-Link / arm-gcc / cmake / Node / pyserial，缺了各有降级路径）
-> 与两个第三方大件 skill（`easyeda-agent` ⚠️ / `ppt-master` ⚠️）——
+> 与第三方件（`easyeda-agent` ⚠️ / `ppt-master` ⚠️ / kicad-happy 摘装四件 ⚠️）——
 > 逐项清单见 **[`PREREQUISITES.md`](PREREQUISITES.md)**（**先读那份再动手**）。
 
 ## AI 为什么"自动"用对 skill（触发链）
@@ -147,12 +151,13 @@ python tools/skillman.py doctor           # 体检：接线 / skill 可调用性
 > 本仓库把控制权收回到**文件 + 显式声明**：换任何客户端，结果一致。
 > 在此之上，各 skill 的 `description` 都按"原生触发友好"打磨过——支持自动触发的客户端**两条腿都能走**。
 
-## 本仓之外还有两个（**本地层**，走 `.gitignore`，不进本仓）
+## 本仓之外还有六个（**本地层**，走 `.gitignore`，不进本仓）
 
 | 目录 | 是什么 | 为什么不在仓里 |
 |---|---|---|
 | `easyeda-agent` | 落图 / 布局 / 布线的 **CLI 化规程**（第三方，MIT）—— 与 `easyeda-api` **配合使用**（它出 typed actions，api 出桥与 API 参考）；**只装 api 也能干活**，只是降级为单跑 | 自带 `easyeda update` 自更新，本地改动会被覆盖；且是第三方大件 |
 | `ppt-master` | 汇报 PPT 链（第三方，84 MB / 13,000 文件） | 体量大，建议直接装上游 |
+| kicad-happy 四件（`datasheets`/`lcsc`/`jlcpcb`/`bom`） | `datasheet-study` 的引擎：datasheet 结构化提取 / LCSC 搜器件下手册 / 打样装配规则 / BOM 生命周期（第三方，MIT，2026-10-06 摘装） | 只摘四件且上游文件不改一字，升级 = 重下 tarball 覆盖（见 `PREREQUISITES.md` §3.5） |
 
 > 它们仍由 `skillman` 统一挂到各客户端（与进仓的 skill 一视同仁），只是**不随本仓发布**；
 > **缺失时 `doctor` 只警告**。装法见 [`PREREQUISITES.md`](PREREQUISITES.md) §3。
@@ -260,6 +265,7 @@ python tools/skillman.py install --skills ~/某处   # 额外扫别的根
   **自研**（2026-09-30 起替代原平台自带版本，进公开层；脚本纯标准库，除 `pyserial` 外零第三方依赖）。
 - `easyeda-*` 两件套：[easyeda/easyeda-api-skill](https://github.com/easyeda/easyeda-api-skill) · [easyeda/easyeda-viewer](https://github.com/easyeda/easyeda-viewer)（嘉立创 EDA 官方，MIT）。
 - `easyeda-agent`（本地层，不进本仓）：[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT）
+- kicad-happy 摘装四件（本地层，不进本仓）：[aklofas/kicad-happy](https://github.com/aklofas/kicad-happy)（MIT）
 - `ponytail` 系：[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)（MIT，本库版有平台适配小改）
 - 方法层（`tdd` / `codebase-design` / `grilling` / `handoff` / `writing-for-agents` / `diagnosing-bugs` / `resolving-merge-conflicts`）：[mattpocock/skills](https://github.com/mattpocock/skills)（MIT）
 - 汇报 PPT 链：推荐直接安装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)（本库不含）

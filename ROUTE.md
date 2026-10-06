@@ -68,10 +68,11 @@
 | 类型 | 触发特征 | 必载 skill | 必读 |
 |---|---|---|---|
 | `硬件/选型` | 选 MCU/器件、电源树、接口规划、BOM 风险、方案对比 | `hardware-solution` | skill 正文 + `framework/工程契约.md` |
+| `硬件/深读` | 读/讲 datasheet、确认引脚/时序/电气参数、选定器件吃透（选型之后、画图之前） | `datasheet-study` · `datasheets` · `lcsc` | skill 正文 + `PREREQUISITES.md` §3.5（后两件是本地层 kicad-happy 摘装件，缺失走 datasheet-study 的降级路径） |
 | `硬件/落图` | 画/改原理图、放件、扇出、布局、网络标号、打 NC、补「值」、跑 DRC | `easyeda-agent` · `easyeda-api` | skill 正文 + `references/` + [`stm32-hal-cli-flow/本机事实.md`](stm32-hal-cli-flow/本机事实.md)（**两条 EDA 链路别混** + 现场前提） |
 | `硬件/看图` | 离线看原理图/PCB、落图视觉复核、给图纸做离线快照 | `easyeda-viewer` | skill 正文 |
 | `硬件/审计` | 原理图查错、换料、标位号、端口修补、DRC | `easyeda-api` | skill 正文 |
-| `硬件/生产` | 打样检查、Gerber/BOM 导出、下单前核对 | `easyeda-api` | skill 正文 |
+| `硬件/生产` | 打样检查、Gerber/BOM 导出、下单前核对 | `easyeda-api` · `bom` · `jlcpcb` | skill 正文（bom/jlcpcb 是本地层 kicad-happy 摘装件：打样装配规则与 BOM 生命周期，备用） |
 
 ### 2.2 软件类
 
@@ -147,7 +148,20 @@
     先 `easyeda daemon health` 判活（退 0 = 已在跑就跳过），再起。
   - `ppt-master`（汇报 PPT；[hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)）：
     `文档/汇报PPT` 的推荐项。没装时按工程自己的文档规范手工产出，不影响其余流程。
+  - `kicad-happy` **四件摘装**（`datasheets` / `lcsc` / `jlcpcb` / `bom`；
+    [aklofas/kicad-happy](https://github.com/aklofas/kicad-happy)，MIT，2026-10-06 审计安装）：
+    **`硬件/深读` 的引擎**——datasheets 管 PDF 结构化提取+按 MPN 缓存，lcsc 管搜器件/下手册
+    （登记在 `硬件/深读` 行）；jlcpcb（打样装配规则）/ bom（BOM 生命周期，深绑 KiCad，备用）
+    登记在 `硬件/生产` 行。上游文件**不改一字**（升级 = 重下 tarball 覆盖四个目录），
+    使用约定（`skills/` 前缀映射、`python3`→`python`）见 `datasheet-study`。
+    装法与审计留证：`PREREQUISITES.md` §3.5。
   - 逐项装法：`PREREQUISITES.md` §3。
+- **立创EDA 扩展（可选增强）**：`easyeda-ai-assistant`
+  （[jifengshandian/easyeda-ai-assistant](https://github.com/jifengshandian/easyeda-ai-assistant)，Apache-2.0）——
+  立创EDA专业版原生扩展，定位"**不帮你画图，画完帮你查**"（悬空引脚 / DRC / 电源拓扑 / 引脚级问题审查，
+  需要深度联动时可开它的只读 MCP）。**人工画图后的审查主力之一**（WORKFLOW ③④ 画后审查用）；
+  **没装走回退**：`easyeda-viewer` / `easyeda-api` 审计链（导出 JSON 离线查）——主干不依赖它。
+  装法：立创EDA「扩展管理器」搜 "AI Schematic Assistant"。
 - **工具链降级**：串口 skill 需 `pyserial`（缺 → 脚本明确报 `environment-missing` 并给 PuTTY / screen 替代）；
   `easyeda-*` 需 Node（缺 → 用 EDA 客户端自带导出）；J-Link 两件套需 SEGGER 工具包
   （缺 → 报 `environment-missing`，**脚本不猜安装路径**）。
@@ -172,7 +186,7 @@
 
 | 东西 | 换机器 | 为什么 |
 |---|---|---|
-| `framework/` · `ROUTE.md` · `WORKFLOW.md` · 25 个 skill | ✅ **直接能搬** | 全是相对引用，不含本机数值 |
+| `framework/` · `ROUTE.md` · `WORKFLOW.md` · 30 个 skill | ✅ **直接能搬** | 全是相对引用，不含本机数值 |
 | `templates/stm32-hal/` | ✅ 能搬 | vendor 源码已随仓提交 |
 | **门文件里写的库路径** | ❌ **搬不走** | 门正文含创建时的**绝对路径**；库换地方，门就集体指空 |
 | `本机事实.md`（适配层） | ❌ 搬不走 | 端口 / 路径 / 进程名是本机的 |
