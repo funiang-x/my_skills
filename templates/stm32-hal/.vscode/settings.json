@@ -7,6 +7,7 @@
     // 强制用 CMakePresets.json 里的预设，避免 CMake Tools 自己乱猜生成器
     // （猜成 Visual Studio 就会编译失败，且报错难以理解）
     "cmake.useCMakePresets": "always",
+    "cmake.sourceDirectory": "${workspaceFolder}/firmware",
     "cmake.configureOnOpen": false,
     "cmake.buildDirectory": "${workspaceFolder}/build/${presetName}",
     "cmake.generator": "Ninja",
@@ -43,8 +44,14 @@
         // ---- CubeMX 生成 / vendor 的只读依赖 ----
         //      ⚠️ 不要手改这两个目录（docs/01 规矩 4）：Drivers/ 与
         //      Middlewares/Third_Party/ 由 CubeMX 生成；Middlewares/RTT/ 是 vendor 的。
-        "Drivers": true,
-        "Middlewares": true,
+        "firmware/Drivers": true,
+        "firmware/Middlewares": true,
+        "_archive": true,
+        "_work": true,
+        ".ai-skills-state": true,
+        "_archive": true,
+        "_work": true,
+        ".ai-skills-state": true,
 
         // ---- AI 助手的记忆与备份：不属于工程代码 ----
         ".workbuddy": true,
@@ -67,8 +74,8 @@
         "**/build/**": true,
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,
-        "Drivers/**": true,
-        "Middlewares/**": true,
+        "firmware/Drivers/**": true,
+        "firmware/Middlewares/**": true,
         ".workbuddy/**": true,
         ".workbuddy-ai/**": true
     },

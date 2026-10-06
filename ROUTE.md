@@ -170,10 +170,13 @@
   且**必须写回退路径**——EDA 链缺服务时退回"结构化连接表"（已有先例）。
 - **本地扩展层（可选）**：只适合本机的 skill / 私有台账，放进本库后加进 `.gitignore` 的本地层名单，
   并把它的任务类型登记进 §2 对应行（`tools/skillman.py doctor` 会校验无死链）。
-- **固件四层工程模板已随本仓携带**（2026-10 起）：`templates/stm32-hal/`（参考板：
-  **立创·梁山派·天空星 F407 开发板**，核心板 STM32F407VGT6）。`stm32-hal-cli-flow` 与
-  `规划/工程` 就是这套模板的规程；派生用 `python Tools/derive.py <新名> --dest <父目录> --verify`
-  （`--verify` 会跑 build + test，退 0 = 新工程可用）。
+- **全项目模板已随本仓携带**（2026-10-06 升级）：`templates/stm32-hal/`（参考板：
+  **立创·梁山派·天空星 F407 开发板**，核心板 STM32F407VGT6）——2026-10-06 起从"纯固件模板"
+  升级为**全项目模板**：软件(firmware 四层)+硬件(hardware/)+文档(docs/INDEX)+工作区治理
+  （`_work/_archive` 机制 + 归位器随模板携带：`templates/stm32-hal/tools/tidy_workspace.py` + AGENTS「AI 工作产物落点」规则）。
+  派生：**整项目** `python tools/derive_project.py <新名> --dest <父目录> --go`（固件工程名自动改写）；
+  **仅固件** `python firmware/Tools/derive.py <新名> --dest <父目录> --verify`
+  （`--verify` 会跑 build + test，退 0 = 新工程可用）。母体维护在 `projects/templet`（G2026 为派生实例）。
   **工程侧自备的模板仍然优先**：你已有的工程按工程自己的 `AGENTS.md` 与 `docs/` 走，本模板是兜底与起点。
 - **本协议不依赖任何"宿主工作台"**：凡需要本机具体数值的地方（路径 / 端口 / 版本），
   以你机器上的实际文件为准；本仓只承诺通用能力，不承诺"某台机器怎么干活"。

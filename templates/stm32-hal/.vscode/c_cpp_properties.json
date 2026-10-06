@@ -18,7 +18,7 @@
     "version": 4,
     "configurations": [
         {
-            "name": "<CHIP_MODEL> (arm-none-eabi)",
+            "name": "STM32F407VG (arm-none-eabi)",
             "compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json",
             // 换机器/换工具链版本时改这里；也可直接用 PATH 里的 arm-none-eabi-gcc。
             "compilerPath": "C:/Program Files/Compiler/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc.exe",
@@ -27,8 +27,6 @@
             "intelliSenseMode": "windows-gcc-arm",
             "defines": [
                 "USE_HAL_DRIVER",
-                // ⚠️ 换芯片清单 ③：CMSIS 器件宏。与 CMakeLists.txt 的 freertos_headers
-                //    和 cmake/stm32cubemx/CMakeLists.txt 的 MX_Defines_Syms 三处同步改。
                 "STM32F407xx",
                 "LOG_BACKEND_RTT"
             ],

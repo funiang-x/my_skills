@@ -20,9 +20,9 @@
             "type": "cortex-debug",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/Debug/PROJECT_NAME.elf",
+            "executable": "${workspaceFolder}/build/Debug/f407vgt6.elf",
             "servertype": "jlink",
-            "device": "<CHIP_MODEL>",
+            "device": "STM32F407VG",
             "interface": "swd",
             "serverpath": "${config:cortex-debug.JLinkGDBServerPath}",
             "armToolchainPath": "${config:cortex-debug.armToolchainPath}",
@@ -31,11 +31,11 @@
             // ---- SVD（外设寄存器视图）----
             // 该文件**不随工程提供**（约 1.5 MB，且随硅片修订变化）。
             // 没有它调试照样能跑，只是"外设寄存器"面板不显示具名寄存器。
-            // 需要时：把 SVD 存成 .vscode/<CHIP_MODEL>.svd，再把下面这行的注释去掉。
+            // 需要时：把 SVD 存成 .vscode/stm32f407.svd，再把下面这行的注释去掉。
             // 来源任选：
-            //   · https://github.com/posborne/cmsis-svd → data/STMicro/<CHIP_MODEL>.svd
+            //   · https://github.com/posborne/cmsis-svd → data/STMicro/STM32F407.svd
             //   · Keil STM32F4xx DFP 包内 (*.svd)
-            // "svdFile": "${workspaceFolder}/.vscode/<CHIP_MODEL>.svd",
+            // "svdFile": "${workspaceFolder}/.vscode/stm32f407.svd",
             "rttConfig": {
                 "enabled": true,
                 "address": "auto",
@@ -60,9 +60,9 @@
             "type": "cortex-debug",
             "request": "attach",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/Debug/PROJECT_NAME.elf",
+            "executable": "${workspaceFolder}/build/Debug/f407vgt6.elf",
             "servertype": "jlink",
-            "device": "<CHIP_MODEL>",
+            "device": "STM32F407VG",
             "interface": "swd",
             "serverpath": "${config:cortex-debug.JLinkGDBServerPath}",
             "armToolchainPath": "${config:cortex-debug.armToolchainPath}",
