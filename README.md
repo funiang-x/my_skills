@@ -275,3 +275,13 @@ python tools/skillman.py install --skills ~/某处   # 额外扫别的根
 - **只读发布**：欢迎 issue 反馈；不接受 PR（保持单方维护的一致性）
 - 加 / 改 / 退 skill 的规程：`ROUTE.md` §2.3「环境/改技能」
 - 本库采用「公开层 + 本地层」：本机私有的扩展 skill 与实战台账不进本仓（见 `.gitignore` 注释）
+- **模板快照要手动回流**：`templates/stm32-hal/` 是母体工程 `projects/templet` 的**快照**，
+  母体改了它**不会自动跟**（2026-10-06 就是因此漏了一次）。改完母体跑：
+
+  ```bash
+  python tools/sync_template.py check --mother <母体工程根>   # 只比对；退 1 = 有漂移
+  python tools/sync_template.py apply --mother <母体工程根> --apply   # 落地（--prune 才删多余）
+  python tools/_test_sync_template.py                          # 该工具的自检（19 项）
+  ```
+
+  ⚠️ 母体路径是**本机路径**，按 §2.8 的规矩**不写死在库里**，所以必须用 `--mother` 传进去。

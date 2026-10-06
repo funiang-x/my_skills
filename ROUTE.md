@@ -174,9 +174,15 @@
   **立创·梁山派·天空星 F407 开发板**，核心板 STM32F407VGT6）——2026-10-06 起从"纯固件模板"
   升级为**全项目模板**：软件(firmware 四层)+硬件(hardware/)+文档(docs/INDEX)+工作区治理
   （`_work/_archive` 机制 + 归位器随模板携带：`templates/stm32-hal/tools/tidy_workspace.py` + AGENTS「AI 工作产物落点」规则）。
-  派生：**整项目** `python tools/derive_project.py <新名> --dest <父目录> --go`（固件工程名自动改写）；
+  派生：**整项目** 在模板工程根跑 `python tools/derive_project.py <新名> --dest <父目录> --go`（固件工程名自动改写）；
   **仅固件** `python firmware/Tools/derive.py <新名> --dest <父目录> --verify`
-  （`--verify` 会跑 build + test，退 0 = 新工程可用）。母体维护在 `projects/templet`（G2026 为派生实例）。
+  （`--verify` 会跑 build + test，退 0 = 新工程可用）。
+  ⚠️ 上面那个 `tools/` 是**模板工程自己的** tools/（随快照携带），**不是本库的** tools/ ——
+  别在本库根目录找它。
+  母体维护在 `projects/templet`（G2026 为派生实例）。**母体改完必须回流快照**（`templates/stm32-hal/`
+  是它的**快照**，不会自动跟；2026-10-06 就是漏了这一步）：
+  `python tools/sync_template.py check --mother <母体路径>`（只比对，退 1 = 有漂移）
+  → 确认后加 `apply --mother <母体路径> --apply` 落地；自检 `python tools/_test_sync_template.py`。
   **工程侧自备的模板仍然优先**：你已有的工程按工程自己的 `AGENTS.md` 与 `docs/` 走，本模板是兜底与起点。
 - **本协议不依赖任何"宿主工作台"**：凡需要本机具体数值的地方（路径 / 端口 / 版本），
   以你机器上的实际文件为准；本仓只承诺通用能力，不承诺"某台机器怎么干活"。
