@@ -1,17 +1,21 @@
 {
     // ========================================================================
-    //  IntelliSense / 跳转 / 补全 配置
+    //  IntelliSense / 跳转 / 补全 配置（根目录版）
     //
     //  策略：以构建系统产出的 compile_commands.json 为**唯一事实来源**，
     //  includePath / defines 只作为兜底 —— 这样新增文件、改 include 目录后
     //  不会再出现"能编译但 IDE 全红波浪线"的经典错位。
     //
-    //  ⚠️ 首次使用前先跑一次配置，生成 build/Debug/compile_commands.json：
-    //         cmake --preset Debug
-    //     或在 VS Code 里执行任务「① 配置 CMake (Debug)」。
+    //  ⚠️ 本文件在**根目录**的 .vscode/ 下。工程是「根 + firmware/」布局，
+    //     所以下面**每一条路径都带 `firmware/` 前缀** —— 漏了任何一条，
+    //     表现都是"能编译但 IDE 到处红波浪线"，且不报错。
+    //
+    //  ⚠️ 首次使用前先跑一次配置，生成 compile_commands.json：
+    //         cd firmware && cmake --preset Debug
+    //     或在 VS Code 里执行任务「① 配置 CMake (Debug)」（它的 cwd 已指对）。
     //
     //  ⚠️ 下面的 defines / includePath 是**兜底**，不参与真实构建。
-    //     真实构建的 include 路径由 CMake 的 target 决定（见 CMakeLists.txt）——
+    //     真实构建的 include 路径由 CMake 的 target 决定（见 firmware/CMakeLists.txt）——
     //     比如 `operation` 目标**故意**拿不到 HAL 头（规矩 2 的机器强制）。
     //     所以 IDE 里看到"Operation 能跳转到 HAL"并不代表它编得过。
     // ========================================================================
@@ -19,7 +23,7 @@
     "configurations": [
         {
             "name": "STM32F407VG (arm-none-eabi)",
-            "compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json",
+            "compileCommands": "${workspaceFolder}/firmware/build/Debug/compile_commands.json",
             // 换机器/换工具链版本时改这里；也可直接用 PATH 里的 arm-none-eabi-gcc。
             "compilerPath": "C:/Program Files/Compiler/arm-gnu-toolchain-15.2.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc.exe",
             "cStandard": "c11",
@@ -31,30 +35,30 @@
                 "LOG_BACKEND_RTT"
             ],
             "includePath": [
-                "${workspaceFolder}",
-                "${workspaceFolder}/Task/Inc",
-                "${workspaceFolder}/Operation/Inc",
-                "${workspaceFolder}/Device/Inc",
-                "${workspaceFolder}/Common/Inc",
-                "${workspaceFolder}/Core/Inc",
-                "${workspaceFolder}/Test",
-                "${workspaceFolder}/Drivers/STM32F4xx_HAL_Driver/Inc",
-                "${workspaceFolder}/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy",
-                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F4xx/Include",
-                "${workspaceFolder}/Drivers/CMSIS/Include",
-                "${workspaceFolder}/Middlewares/RTT",
-                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/include",
-                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2",
-                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"
+                "${workspaceFolder}/firmware",
+                "${workspaceFolder}/firmware/Task/Inc",
+                "${workspaceFolder}/firmware/Operation/Inc",
+                "${workspaceFolder}/firmware/Device/Inc",
+                "${workspaceFolder}/firmware/Common/Inc",
+                "${workspaceFolder}/firmware/Core/Inc",
+                "${workspaceFolder}/firmware/Test",
+                "${workspaceFolder}/firmware/Drivers/STM32F4xx_HAL_Driver/Inc",
+                "${workspaceFolder}/firmware/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy",
+                "${workspaceFolder}/firmware/Drivers/CMSIS/Device/ST/STM32F4xx/Include",
+                "${workspaceFolder}/firmware/Drivers/CMSIS/Include",
+                "${workspaceFolder}/firmware/Middlewares/RTT",
+                "${workspaceFolder}/firmware/Middlewares/Third_Party/FreeRTOS/Source/include",
+                "${workspaceFolder}/firmware/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2",
+                "${workspaceFolder}/firmware/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"
             ],
             "browse": {
                 "path": [
-                    "${workspaceFolder}/Task",
-                    "${workspaceFolder}/Operation",
-                    "${workspaceFolder}/Device",
-                    "${workspaceFolder}/Common",
-                    "${workspaceFolder}/Core",
-                    "${workspaceFolder}/Test"
+                    "${workspaceFolder}/firmware/Task",
+                    "${workspaceFolder}/firmware/Operation",
+                    "${workspaceFolder}/firmware/Device",
+                    "${workspaceFolder}/firmware/Common",
+                    "${workspaceFolder}/firmware/Core",
+                    "${workspaceFolder}/firmware/Test"
                 ],
                 "limitSymbolsToIncludedHeaders": true
             },

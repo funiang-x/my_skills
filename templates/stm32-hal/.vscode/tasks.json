@@ -8,6 +8,16 @@
     //
     //  快捷入口：Ctrl+Shift+B = ② 构建固件 (Debug)
     //
+    //  ★★ 所有任务的 cwd 都是 `${workspaceFolder}/firmware`，**别改回根目录** ——
+    //     本工程是「根目录放文档/硬件/工具，固件全在 firmware/」的三区布局，
+    //     而 `Tools/fw.py` 依赖"当前目录就是固件工程根"（它按相对路径找
+    //     CMakePresets.json / build/ / Core/Inc/board_config.h）。
+    //     在根目录跑 `python Tools/fw.py` 会直接找不到文件。
+    //
+    //  ⚠️ 这份文件在**根目录**的 .vscode/ 下，是给"打开大工程"用的那份。
+    //     VS Code **只读你打开的那个目录的 .vscode/** —— 所以根目录和
+    //     `firmware/` 各有一份配置，两边是**故意的双份**，改的时候要同步。
+    //
     //  ⚠️ 这些任务**不会**出现在 CMake Tools 的侧边栏里 —— CMake Tools 只渲染
     //  CMakePresets 的内容（configure / build preset、target）。要看本文件的任务，
     //  走 Ctrl+Shift+P → "Tasks: Run Task"，或 终端 → 运行任务。
@@ -17,6 +27,10 @@
     //
     //  ⚠️ ⑭ 是**唯一**会往工程目录**之外**写的任务（复制到上一级目录）。
     //     它不可逆，但目标已存在时会拒绝执行、绝不覆盖。清单见 docs/10 §E。
+    //
+    //  ⚠️ 「② 构建固件 (UART 日志)」对应 `--preset Debug-UART`。模板的 `.ioc`
+    //     配了 USART1，所以这条可用；**派生工程如果裁掉了串口，要把这条删掉**
+    //     （否则它编不过 —— 日志后端只剩 RTT，见 firmware/docs/11 §3）。
     // ========================================================================
     "version": "2.0.0",
     "tasks": [
@@ -29,7 +43,7 @@
                 "Debug"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "生成 build/Debug/ 与 compile_commands.json（IntelliSense 依赖它）"
@@ -44,7 +58,7 @@
                 "--clean-first"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "group": {
                 "kind": "build",
@@ -67,13 +81,33 @@
                 "--clean-first"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "group": "build",
             "problemMatcher": [
                 "$gcc"
             ],
             "detail": "发布版：-Os -g0，体积最小"
+        },
+        {
+            "label": "② 构建固件 (RelWithDebInfo)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "Tools/fw.py",
+                "build",
+                "--preset",
+                "RelWithDebInfo",
+                "--clean-first"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/firmware"
+            },
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "现场取证 / profiling：-O2 -g3，跑得快且带完整符号"
         },
         {
             "label": "② 构建固件 (UART 日志)",
@@ -86,7 +120,7 @@
                 "Debug-UART"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "group": "build",
             "problemMatcher": [
@@ -105,7 +139,7 @@
                 "8"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "AI 闭环：lint → build → 体积门禁 → 烧录 → 抓 RTT → 检查 [AI_READY]。退出码 0=通过，详见 docs/11 §5"
@@ -120,7 +154,7 @@
                 "--no-build"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "把现有产物烧进芯片并复位运行，不重新编译。⚠️ 不可逆操作（docs/12）"
@@ -136,7 +170,7 @@
                 "10"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "不开调试会话，直接抓 10 秒 RTT 通道 0 的日志"
@@ -150,7 +184,7 @@
                 "size"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "按链接脚本 MEMORY 段算的真实占用（与 ld 的 Memory region 逐字节一致）"
@@ -164,7 +198,7 @@
                 "sizecheck"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "超预算即失败。⚠️ 调高上限 = 拆门禁，要调先走 docs/12"
@@ -178,7 +212,7 @@
                 "lint"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "抓 .ioc 与 Core/Inc/board_config.h 的确定性矛盾（双真相源漂移）。verify 也已前置这一步"
@@ -192,7 +226,7 @@
                 "doccheck"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "骨架用短引用 docs/01（不是合法路径，肉眼看不出对错）—— 改了 .md 就跑它"
@@ -206,7 +240,7 @@
                 "selftest"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "在工程副本上跑基线 + 负向用例（原工程只读）。改完 Tools/ 下任何检查器后必跑"
@@ -220,7 +254,7 @@
                 "test"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "★ 四层架构的核心反馈回路：把 Operation/ 的源码拿到电脑上编译并跑单测。不烧板、秒级出结果"
@@ -234,7 +268,7 @@
                 "gdb"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "JLinkGDBServerCL + arm-none-eabi-gdb。图形界面请用调试面板的 launch.json 配置"
@@ -248,7 +282,7 @@
                 "env"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "一条命令给全部答案：工具链版本 / 依赖 / J-Link 路径 / 器件 / 各预设构建目录"
@@ -262,7 +296,7 @@
                 "clean"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "只删 build/ 下所有预设的产物；源码、Drivers/、docs/ 一概不动"
@@ -277,7 +311,7 @@
                 "--verify"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/firmware"
             },
             "problemMatcher": [],
             "detail": "★ 把本模板复制成新工程：改名 3 处 + 建新 git 仓库 + 跑一遍 build/test 验证。⚠️ 它会往**本工程的上一级目录**写，是本文件里唯一会碰工程外路径的任务（docs/12）；清单见 docs/10 §E"
