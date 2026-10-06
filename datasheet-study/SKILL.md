@@ -8,7 +8,7 @@ agent_created: true
 
 ## 定位
 
-- **上游** `hardware-solution`：管"选哪颗"（需求 → 架构 → 选型结论），datasheet 的批量下载也归它（其步骤 5，源优先级见它的 `references/download-sources.md`）。
+- **上游** `hardware-solution`：管"选哪颗"（需求 → 架构 → 选型结论），datasheet 的批量下载也归它（其步骤 5，源优先级见它的 download-sources 已验证源清单）。
 - **本 skill**：管"这颗怎么用"——参数确认、讲解、设计要点，产出供人工画原理图/PCB 消费。
 - **引擎**：本地层 kicad-happy 四件里的 `datasheets`（PDF 结构化提取+按 MPN 缓存）与 `lcsc`（搜器件/下手册）。**没装也能跑**，走 §降级路径。
 
@@ -48,7 +48,7 @@ agent_created: true
 |---|---|
 | kicad-happy 四件没装 | 本 skill 仍完整可用：子代理**分页读** PDF（按读 PDF 工具的单次页数上限切），主对话只收参数卡，不整本塞 |
 | poppler 缺失 | 子代理直接读 PDF 对应页后汇总；脚本级缓存不建，讲解笔记照常落盘 |
-| lcsc 不可用 / 无网 | 按 `hardware-solution` 的 `references/download-sources.md` 已验证源给直链，用户手动下载 |
+| lcsc 不可用 / 无网 | 按 `hardware-solution` 的 download-sources 已验证源清单给直链，用户手动下载 |
 
 ## 反模式
 
