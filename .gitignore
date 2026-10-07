@@ -38,6 +38,12 @@
 /jlcpcb/
 /bom/
 
+# 第三方 skill 摘装：nature-skills 的 nature-ref-verifier（6 文件；Apache-2.0，Yuan1z0825，
+# 2026-10-07 审计安装）。整仓 20 个技能是**投 Nature 英文期刊**向，只摘这一个：参考文献
+# 多源交叉验证（DOI→Crossref 解析 + 作者/卷期页逐字段比对，中文文献降级 CNKI/万方）。
+# 上游文件不改一字（升级 = 重下 codeload tarball 覆盖本目录）；**不依赖 nature-shared**。
+/nature-ref-verifier/
+
 # 实战台账与内部留证（含真实项目现场细节，只留本机）
 **/LESSONS.md
 **/PATCHES.diff

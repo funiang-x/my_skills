@@ -1,0 +1,3 @@
+interface:
+  display_name: "SW/HW Chain"
+  short_description: "Six-chain analysis of a software+hardware project, first-hand sources only"
