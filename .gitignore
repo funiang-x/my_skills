@@ -38,11 +38,18 @@
 /jlcpcb/
 /bom/
 
-# 第三方 skill 摘装：nature-skills 的 nature-ref-verifier（6 文件；Apache-2.0，Yuan1z0825，
-# 2026-10-07 审计安装）。整仓 20 个技能是**投 Nature 英文期刊**向，只摘这一个：参考文献
-# 多源交叉验证（DOI→Crossref 解析 + 作者/卷期页逐字段比对，中文文献降级 CNKI/万方）。
-# 上游文件不改一字（升级 = 重下 codeload tarball 覆盖本目录）；**不依赖 nature-shared**。
+# 第三方 skill 摘装：nature-skills（Apache-2.0，Yuan1z0825）。整仓 20 个技能是**投 Nature
+# 英文期刊**向，本库只摘需要的几件：
+#   · nature-ref-verifier（6 文件，2026-10-07 审计安装）—— 参考文献多源交叉验证
+#     （DOI→Crossref 解析 + 作者/卷期页逐字段比对，中文文献降级 CNKI/万方）
+#   · nature-polishing / nature-writing / nature-shared（2026-10-17 追加）—— 学术润色改写 /
+#     论文论证起草 / 上面两件的共享引用包（ref-verifier 不依赖它）
+# 上游文件不改一字（升级 = 重下 codeload tarball 覆盖目录）；本机适配写自己的笔记，不落进这些目录。
+# 第三方 → 不进仓（skill_audit 按「上方最近一条注释」归类，故本行必须紧贴下面的条目）
 /nature-ref-verifier/
+/nature-polishing/
+/nature-writing/
+/nature-shared/
 
 # 实战台账与内部留证（含真实项目现场细节，只留本机）
 **/LESSONS.md

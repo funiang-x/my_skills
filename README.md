@@ -266,6 +266,7 @@ python tools/skillman.py install --skills ~/某处   # 额外扫别的根
 - `easyeda-*` 两件套：[easyeda/easyeda-api-skill](https://github.com/easyeda/easyeda-api-skill) · [easyeda/easyeda-viewer](https://github.com/easyeda/easyeda-viewer)（嘉立创 EDA 官方，MIT）。
 - `easyeda-agent`（本地层，不进本仓）：[zhoushoujianwork/easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)（MIT）
 - kicad-happy 摘装四件（本地层，不进本仓）：[aklofas/kicad-happy](https://github.com/aklofas/kicad-happy)（MIT）
+- nature-skills 摘装四件（本地层，不进本仓）：Yuan1z0825（Apache-2.0；`nature-ref-verifier` / `nature-polishing` / `nature-writing` / `nature-shared`）
 - `ponytail` 系：[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)（MIT，本库版有平台适配小改）
 - 方法层（`tdd` / `codebase-design` / `grilling` / `handoff` / `writing-for-agents` / `diagnosing-bugs` / `resolving-merge-conflicts`）：[mattpocock/skills](https://github.com/mattpocock/skills)（MIT）
 - 汇报 PPT 链：推荐直接安装上游 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)（本库不含）
